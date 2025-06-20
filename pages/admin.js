@@ -245,32 +245,26 @@ const AdminPage = () => {
 
       <Typography variant="h4" gutterBottom>Administration des Inscriptions</Typography>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, my: 2 }}>
-          <Button variant="contained" color="info" href="/scan" fullWidth={isMobile}>
-            Scanner un badge
-          </Button>
-          <Button variant="contained" color="success" href="/scan-ticket" fullWidth={isMobile}>
-            Scanner un ticket
-          </Button>
-          <Button variant="contained" color="warning" href="/admin/cnol-dor" fullWidth={isMobile}>
-            CNOL d'Or
-          </Button>
-        </Box>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}>
+        <Button variant="contained" color="info" href="/scan" fullWidth={isMobile}>
+          SCANNER UN BADGE
+        </Button>
+        <Button variant="contained" color="success" href="/scan-ticket" fullWidth={isMobile}>
+          SCANNER UN TICKET
+        </Button>
+        <Button variant="contained" color="warning" href="/admin/cnol-dor" fullWidth={isMobile}>
+          CNOL D'OR
+        </Button>
         <Button variant="contained" color="primary" onClick={exportCSV} fullWidth={isMobile}>Exporter CSV</Button>
-        <Link href="/entrees" passHref legacyBehavior>
-          <Button variant="outlined" color="success" component="a" fullWidth={isMobile}>Voir les entrées</Button>
-        </Link>
-        <Link href="/admin/ateliers" passHref legacyBehavior>
-          <Button variant="outlined" color="primary" component="a" fullWidth={isMobile}>Gérer les Ateliers</Button>
-        </Link>
-        <Link href="/admin/masterclass" passHref legacyBehavior>
-          <Button variant="outlined" color="secondary" component="a" fullWidth={isMobile}>Gérer les Masterclass</Button>
-        </Link>
+        <Button variant="outlined" href="/entrees" fullWidth={isMobile}>Voir les entrées</Button>
+        <Button variant="outlined" color="secondary" href="/admin/ateliers" fullWidth={isMobile}>Gérer les ateliers</Button>
+        <Button variant="outlined" color="secondary" href="/admin/masterclass" fullWidth={isMobile}>Gérer les masterclass</Button>
+        <Button variant="outlined" color="info" href="/admin/statistiques" fullWidth={isMobile}>Statistiques</Button>
+        <Button variant="outlined" color="error" href="/admin/notifications" fullWidth={isMobile}>Notifications</Button>
       </Stack>
 
-      <Box component="form" onSubmit={handleAdd} sx={{ mb: 4 }}>
-        <Typography variant="h6" gutterBottom>Ajouter un participant interne</Typography>
+      <Typography variant="h5" gutterBottom>Ajouter un participant interne</Typography>
+      <form onSubmit={handleAdd}>
         <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
           <TextField label="Nom" name="nom" value={formData.nom} onChange={handleChange} required fullWidth />
           <TextField label="Prénom" name="prenom" value={formData.prenom} onChange={handleChange} required fullWidth />
@@ -282,11 +276,11 @@ const AdminPage = () => {
           <TextField label="Fonction" name="fonction" value={formData.fonction} onChange={handleChange} fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" >
-          <FormControl sx={{ minWidth: 180, width: { xs: '100%', sm: 'auto' } }}>
+          <FormControl fullWidth>
             <InputLabel>Type</InputLabel>
-            <Select label="Type" name="participant_type" value={formData.participant_type} onChange={handleChange}>
-              {participantTypes.slice(0,3).map(opt => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+            <Select name="participant_type" value={formData.participant_type} label="Type" onChange={handleChange}>
+              {participantTypes.map(type => (
+                <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -304,7 +298,7 @@ const AdminPage = () => {
             {adding ? 'Ajout en cours…' : 'Ajouter'}
           </Button>
         </Stack>
-      </Box>
+      </form>
 
       <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 3 }}>
         <TextField label="Rechercher nom/prénom" variant="outlined" value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} fullWidth />

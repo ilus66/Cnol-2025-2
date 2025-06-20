@@ -43,6 +43,7 @@ export default function Home() {
         <div style={styles.buttonGroup}>
           <a href="/inscription" style={styles.button}>S'inscrire</a>
           <a href="/cnol-dor" style={styles.button}>CNOL d'Or 2025</a>
+          <a href="/mon-espace" style={styles.button}>Mon espace</a>
           {/* <a href="/admin" style={styles.adminButton}>Admin</a> */}
         </div>
 

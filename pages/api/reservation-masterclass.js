@@ -63,6 +63,39 @@ export default async function handler(req, res) {
     html: `<div style=\"font-family: Arial, sans-serif; color: #333; max-width:600px; margin:auto; padding:25px; border:1px solid #ddd; border-radius:10px; background:#ffffff;\"><h2 style=\"color:#0070f3;\">📥 Nouvelle inscription à une masterclass</h2><table style=\"width:100%; border-collapse:collapse; margin-top:15px;\"><tr><td style=\"padding:8px; font-weight:bold;\">Nom :</td><td style=\"padding:8px;\">${nom}</td></tr><tr><td style=\"padding:8px; font-weight:bold;\">Prénom :</td><td style=\"padding:8px;\">${prenom}</td></tr><tr><td style=\"padding:8px; font-weight:bold;\">Email :</td><td style=\"padding:8px;\">${email}</td></tr><tr><td style=\"padding:8px; font-weight:bold;\">Téléphone :</td><td style=\"padding:8px;\">${telephone}</td></tr><tr><td style=\"padding:8px; font-weight:bold;\">Masterclass :</td><td style=\"padding:8px;\">${masterclass.titre}</td></tr><tr><td style=\"padding:8px; font-weight:bold;\">Type :</td><td style=\"padding:8px;\">${type}</td></tr><tr><td style=\"padding:8px; font-weight:bold;\">Date :</td><td style=\"padding:8px;\">${new Date().toLocaleString()}</td></tr></table></div>`
   })
 
+  // Envoi notification push (et insertion en base)
+  // Chercher l'utilisateur (participant) pour récupérer son id
+  const { data: inscrit } = await supabase
+    .from('inscription')
+    .select('id, email')
+    .eq('email', email)
+    .single();
+  if (inscrit && inscrit.id) {
+    const notifBody = type === 'interne'
+      ? 'Votre ticket masterclass est envoyé par email.'
+      : 'Votre réservation masterclass est bien prise en compte. Vous recevrez votre ticket par email après validation.';
+    await supabase.from('notifications').insert({
+      user_id: inscrit.id,
+      title: 'Réservation masterclass CNOL 2025',
+      body: notifBody,
+      url: null
+    });
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/push/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: inscrit.id,
+          title: 'Réservation masterclass CNOL 2025',
+          body: notifBody,
+          url: null
+        })
+      });
+    } catch (e) {
+      console.error('Erreur envoi notification push:', e);
+    }
+  }
+
   // Si interne, générer et envoyer le ticket tout de suite
   if (type === 'interne') {
     const pdfBuffer = await generateTicket({

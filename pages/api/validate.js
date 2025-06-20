@@ -75,6 +75,30 @@ export default async function handler(req, res) {
     // Envoyer mail
     await sendBadgeEmail(updated.email, `${updated.prenom} ${updated.nom}`, pdfBuffer);
 
+    // Envoi notification push (et insertion en base)
+    if (updated && updated.id) {
+      await supabase.from('notifications').insert({
+        user_id: updated.id,
+        title: 'Validation inscription CNOL 2025',
+        body: "Votre inscription a été validée ! Votre badge nominatif a été envoyé par email.",
+        url: null
+      });
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/push/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: updated.id,
+            title: 'Validation inscription CNOL 2025',
+            body: "Votre inscription a été validée ! Votre badge nominatif a été envoyé par email.",
+            url: null
+          })
+        });
+      } catch (e) {
+        console.error('Erreur envoi notification push:', e);
+      }
+    }
+
     return res.status(200).json({ message: 'Inscription validée et mail envoyé.' });
   } catch (error) {
     console.error('❌ Erreur API validate:', error);

@@ -504,7 +504,7 @@ export default function MonEspace() {
             <>
               <Typography variant="h6">Postuler au CNOL d'Or</Typography>
               <Typography sx={{ my: 1 }}>Tentez votre chance et devenez le lauréat du CNOL d'Or 2025.</Typography>
-              <Button variant="contained" color="warning" href="/cnol-dor">
+              <Button variant="contained" color="warning" href="/cnol-dor" target="_blank" rel="noopener noreferrer">
                 Je postule
               </Button>
               <Divider sx={{ my: 2 }} />

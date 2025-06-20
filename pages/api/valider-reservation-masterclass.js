@@ -24,7 +24,8 @@ export default async function handler(req, res) {
     eventTitle: masterclass.titre,
     eventDate: masterclass.date_heure,
     reservationId: String(resa.id),
-    salle: masterclass.salle
+    salle: masterclass.salle,
+    intervenant: masterclass.intervenant
   })
 
   // Envoyer mail avec ticket

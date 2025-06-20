@@ -28,7 +28,8 @@ export default async function handler(req, res) {
     eventTitle: atelier.titre,
     eventDate: atelier.date_heure,
     reservationId: String(resa.id),
-    salle: atelier.salle
+    salle: atelier.salle,
+    intervenant: atelier.intervenant
   })
 
   // Envoyer mail avec ticket

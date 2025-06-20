@@ -96,23 +96,39 @@ export default function AdminMasterclassPage() {
       setInternalError('Limite de 15 réservations internes atteinte')
       return
     }
-    const res = await fetch('/api/reservation-masterclass', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+
+    // NOUVELLE LOGIQUE : Insertion directe en base de données
+    const { data: user } = await supabase
+      .from('inscription')
+      .select('id, nom, prenom, email, telephone, participant_type')
+      .eq('email', internalForm.email.trim())
+      .single();
+
+    if (!user) {
+      setInternalError("Cet utilisateur n'existe pas dans la base des inscrits. Veuillez l'ajouter d'abord.");
+      return;
+    }
+
+    const { error: insertError } = await supabase
+      .from('reservations_masterclass')
+      .insert({
         masterclass_id: openMasterId,
-        nom: internalForm.nom,
-        prenom: internalForm.prenom,
-        email: internalForm.email,
-        telephone: internalForm.telephone,
-        type: 'interne'
-      })
-    })
-    if (!res.ok) {
-      setInternalError('Erreur lors de l\'ajout')
+        participant_id: user.id,
+        type: user.participant_type === 'exposant' || user.participant_type === 'intervenant' || user.participant_type === 'vip' || user.participant_type === 'organisation' ? 'interne' : 'externe',
+        valide: true, // Les inscriptions internes sont validées d'office
+        nom: user.nom,
+        prenom: user.prenom,
+        email: user.email,
+        telephone: user.telephone,
+      });
+
+    if (insertError) {
+      console.error('Erreur insertion directe:', insertError);
+      setInternalError('Erreur lors de l\'ajout : ' + insertError.message);
     } else {
-      setInternalForm({ nom: '', prenom: '', email: '', telephone: '' })
-      fetchInternalResas(openMasterId)
+      setInternalForm({ nom: '', prenom: '', email: '', telephone: '' });
+      await fetchInternalResas(openMasterId);
+      toast.success('Participant ajouté à la masterclass !');
     }
   }
 

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Button, TextField, Typography, Paper, Stack, Divider, List, ListItem, ListItemText } from '@mui/material';
-import QRCodeScanner from '../components/QRCodeScanner';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
@@ -22,6 +22,32 @@ export default function MonEspace() {
   const [availableMasterclass, setAvailableMasterclass] = useState([]);
   const [hasAppliedCnolDor, setHasAppliedCnolDor] = useState(false);
   const [reservationMessage, setReservationMessage] = useState('');
+
+  // Détection mobile
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
+
+  useEffect(() => {
+    if (!showScanner) return;
+
+    const scanner = new Html5QrcodeScanner(
+      "reader-contact",
+      { fps: 10, qrbox: 250 },
+      false
+    );
+
+    scanner.render(
+      async (decodedText) => {
+        setShowScanner(false);
+        scanner.clear();
+        handleScanSuccess(decodedText);
+      },
+      (error) => {
+        // ignorer les erreurs de scan
+      }
+    );
+
+    return () => scanner.clear().catch(() => {});
+  }, [showScanner]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -157,6 +183,7 @@ export default function MonEspace() {
       setScanError('Erreur réseau');
     }
   };
+
   const handleScanError = (err) => {
     // Ne pas afficher les erreurs de "non-détection" qui sont constantes
     if (err && !err.includes('No MultiFormat Readers')) {
@@ -346,7 +373,7 @@ export default function MonEspace() {
               <Typography sx={{ mb: 1, textAlign: 'center', color: 'text.secondary' }}>
                 Veuillez centrer le QR code dans la zone de scan.
               </Typography>
-              <QRCodeScanner onScanSuccess={handleScanSuccess} onScanError={handleScanError} />
+              <div id="reader-contact" style={{ marginTop: 20 }} />
               <Button onClick={() => setShowScanner(false)} sx={{ mt: 1 }} fullWidth>Annuler</Button>
             </Box>
           )}

@@ -321,11 +321,11 @@ export default function AdminAteliers() {
               <Typography><b>Places restantes :</b> {atelier.places - (atelier.reservations_validated || 0)}</Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
                 <Button variant="outlined" color="primary" onClick={() => handleOpenInternal(atelier.id)} fullWidth={isMobile}>Réservations internes</Button>
-                <Button variant="outlined" color="secondary" href={`/admin/ateliers/${atelier.id}`} fullWidth={isMobile}>Liste inscrits</Button>
-                <Button variant="outlined" color="success" onClick={() => handleExport(atelier)} fullWidth={isMobile}>Exporter</Button>
+                <Button variant="outlined" color="secondary" onClick={() => handleOpenList(atelier.id)} startIcon={<ListIcon />} fullWidth={isMobile}>Liste inscrits</Button>
+                <Button variant="outlined" color="success" onClick={() => handleExport(atelier)} startIcon={<DownloadIcon />} fullWidth={isMobile}>Exporter</Button>
                 <Button variant={atelier.publie ? 'outlined' : 'contained'} color={atelier.publie ? 'warning' : 'success'} onClick={async () => { await supabase.from('ateliers').update({ publie: !atelier.publie }).eq('id', atelier.id); fetchAteliers(); }} fullWidth={isMobile}>{atelier.publie ? 'Cacher' : 'Publier'}</Button>
-                <Button variant="outlined" color="warning" onClick={() => handleOpenEdit(atelier)} fullWidth={isMobile}>Modifier</Button>
-                <Button variant="outlined" color="error" onClick={() => handleDelete(atelier.id)} fullWidth={isMobile}>Supprimer</Button>
+                <Button variant="outlined" color="warning" onClick={() => handleOpenEdit(atelier)} startIcon={<EditIcon />} fullWidth={isMobile}>Modifier</Button>
+                <Button variant="outlined" color="error" onClick={() => handleDelete(atelier.id)} startIcon={<DeleteIcon />} fullWidth={isMobile}>Supprimer</Button>
               </Stack>
             </Stack>
           </Paper>

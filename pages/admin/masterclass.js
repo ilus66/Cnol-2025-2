@@ -81,6 +81,22 @@ export default function AdminMasterclassPage() {
     fetchMasterclass()
   }
 
+  const handleDeleteResa = async (resaId) => {
+    const { error } = await supabase.from('reservations_masterclass').delete().eq('id', resaId);
+    if (error) {
+        toast.error('Erreur lors de la suppression');
+        console.error(error);
+    } else {
+        toast.success('Réservation supprimée');
+        if (openMasterId) {
+            fetchInternalResas(openMasterId);
+        }
+        if (openListMasterId) {
+            handleOpenList(openListMasterId);
+        }
+    }
+  };
+
   const handleOpenInternal = async (masterId) => {
     setOpenMasterId(masterId)
     await fetchInternalResas(masterId)
@@ -96,39 +112,29 @@ export default function AdminMasterclassPage() {
       setInternalError('Limite de 15 réservations internes atteinte')
       return
     }
-
-    // NOUVELLE LOGIQUE : Insertion directe en base de données
-    const { data: user } = await supabase
-      .from('inscription')
-      .select('id, nom, prenom, email, telephone, participant_type')
-      .eq('email', internalForm.email.trim())
-      .single();
-
-    if (!user) {
-      setInternalError("Cet utilisateur n'existe pas dans la base des inscrits. Veuillez l'ajouter d'abord.");
-      return;
-    }
-
-    const { error: insertError } = await supabase
+    
+    // Direct insertion en BDD
+    const { error } = await supabase
       .from('reservations_masterclass')
-      .insert({
-        masterclass_id: openMasterId,
-        participant_id: user.id,
-        type: user.participant_type === 'exposant' || user.participant_type === 'intervenant' || user.participant_type === 'vip' || user.participant_type === 'organisation' ? 'interne' : 'externe',
-        valide: true, // Les inscriptions internes sont validées d'office
-        nom: user.nom,
-        prenom: user.prenom,
-        email: user.email,
-        telephone: user.telephone,
-      });
+      .insert([
+        {
+          masterclass_id: openMasterId,
+          nom: internalForm.nom,
+          prenom: internalForm.prenom,
+          email: internalForm.email,
+          telephone: internalForm.telephone,
+          type: 'interne',
+          valide: true, // Les réservations internes sont auto-validées
+        },
+      ]);
 
-    if (insertError) {
-      console.error('Erreur insertion directe:', insertError);
-      setInternalError('Erreur lors de l\'ajout : ' + insertError.message);
+    if (error) {
+      console.error("Erreur d'insertion directe:", error);
+      setInternalError("Erreur lors de l'ajout : " + error.message);
     } else {
-      setInternalForm({ nom: '', prenom: '', email: '', telephone: '' });
-      await fetchInternalResas(openMasterId);
-      toast.success('Participant ajouté à la masterclass !');
+      toast.success('Réservation interne ajoutée et validée !');
+      setInternalForm({ nom: '', prenom: '', email: '', telephone: '' })
+      fetchInternalResas(openMasterId)
     }
   }
 
@@ -295,7 +301,7 @@ export default function AdminMasterclassPage() {
               <Typography><b>Places restantes :</b> {master.places - (master.reservations_validated || 0)}</Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
                 <Button variant="outlined" color="primary" onClick={() => handleOpenInternal(master.id)} fullWidth={isMobile}>Réservations internes</Button>
-                <Button variant="outlined" color="secondary" href={`/admin/masterclass/${master.id}`} fullWidth={isMobile}>Liste inscrits</Button>
+                <Button variant="outlined" color="secondary" onClick={() => handleOpenList(master.id)} fullWidth={isMobile}>Liste inscrits</Button>
                 <Button variant="outlined" color="success" onClick={() => handleExport(master)} fullWidth={isMobile}>Exporter</Button>
                 <Button variant={master.publie ? 'outlined' : 'contained'} color={master.publie ? 'warning' : 'success'} onClick={async () => { await supabase.from('masterclass').update({ publie: !master.publie }).eq('id', master.id); fetchMasterclass(); }} fullWidth={isMobile}>{master.publie ? 'Cacher' : 'Publier'}</Button>
                 <Button variant="outlined" color="error" onClick={() => handleDelete(master.id)} fullWidth={isMobile}>Supprimer</Button>
@@ -360,7 +366,7 @@ export default function AdminMasterclassPage() {
                   <Typography><b>Téléphone :</b> {resa.telephone}</Typography>
                 </Box>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: { xs: 1, sm: 0 } }}>
-                  <Button variant="contained" color="error" size="small" onClick={() => handleDelete(resa.id)} fullWidth={isMobile}>
+                  <Button variant="contained" color="error" size="small" onClick={() => handleDeleteResa(resa.id)} fullWidth={isMobile}>
                     Supprimer
                   </Button>
                 </Stack>

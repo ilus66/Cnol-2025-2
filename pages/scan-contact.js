@@ -57,11 +57,13 @@ export default function ScanContactPage({ user }) {
     setLastQr(decodedText);
 
     try {
-      const { data: scannedUserData, error: rpcError } = await supabase.rpc('get_user_details_by_badge', {
-        p_badge_code: decodedText
-      }).single();
+      const { data: scannedUserData, error: selectError } = await supabase
+        .from('inscription')
+        .select('nom, prenom, email, telephone, fonction, ville')
+        .eq('identifiant_badge', decodedText)
+        .single();
       
-      if (rpcError || !scannedUserData) {
+      if (selectError || !scannedUserData) {
         throw new Error('Badge invalide ou participant non trouvé.');
       }
       

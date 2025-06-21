@@ -1,62 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { withIronSessionSsr } from 'iron-session';
 import {
-  Box, Typography, Paper, Stack, CircularProgress, Card, CardContent, CardActions, Button, Link as MuiLink, Divider
+  Box, Typography, Paper, Stack, Card, CardContent, CardActions, Button, Link as MuiLink, Divider
 } from '@mui/material';
-import { useRouter } from 'next/router';
 import Link from 'next/link';
 
-export const getServerSideProps = withIronSessionSsr(async function ({ req }) {
-  const user = req.session.user;
+export const getServerSideProps = withIronSessionSsr(
+  async function getServerSideProps({ req }) {
+    const user = req.session.user;
 
-  if (!user) {
+    if (!user?.id) {
+      return {
+        redirect: {
+          destination: '/identification',
+          permanent: false,
+        },
+      };
+    }
+
+    const { data: hotels, error } = await supabase.from('hotels').select('*').order('nom');
+
+    if (error) {
+      console.error('Erreur de chargement des hôtels:', error);
+      return { props: { hotels: [] } };
+    }
+
     return {
-      redirect: {
-        destination: '/identification',
-        permanent: false,
-      },
+      props: { user, hotels: hotels || [] },
     };
-  }
-
-  const { data: hotels, error } = await supabase.from('hotels').select('*').order('nom');
-
-  if (error) {
-    console.error('Erreur de chargement des hôtels:', error);
-    return { props: { hotels: [] } };
-  }
-
-  return {
-    props: { user, hotels: hotels || [] },
-  };
-}, {
-  cookieName: 'cnol-session',
-  password: process.env.SESSION_SECRET || "complex_password_at_least_32_characters_long",
-  cookieOptions: {
-    secure: process.env.NODE_ENV === 'production',
   },
-});
+  {
+    cookieName: 'cnol-session',
+    password: process.env.SESSION_SECRET || "complex_password_at_least_32_characters_long",
+    cookieOptions: {
+      secure: process.env.NODE_ENV === 'production',
+    },
+  }
+);
 
 const HotelsPage = ({ user, hotels }) => {
-  const router = useRouter();
-
   if (!user) {
     return null; 
   }
 
   return (
     <Box sx={{ p: 3, maxWidth: 'lg', mx: 'auto' }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-            <Typography variant="h4">Hôtels Partenaires</Typography>
-            <Link href="/mon-espace" passHref>
-                <Button variant="outlined">Retour à mon espace</Button>
-            </Link>
-        </Stack>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+        <Typography variant="h4">Hôtels Partenaires</Typography>
+        <Link href="/mon-espace" passHref>
+          <Button variant="outlined">Retour à mon espace</Button>
+        </Link>
+      </Stack>
 
       {hotels.length === 0 ? (
         <Paper sx={{p: 4, textAlign: 'center'}}>
-            <Typography>Aucun hôtel partenaire n'a été configuré pour le moment.</Typography>
-            <Typography>Revenez bientôt !</Typography>
+          <Typography>Aucun hôtel partenaire n'a été configuré pour le moment.</Typography>
+          <Typography>Revenez bientôt !</Typography>
         </Paper>
       ) : (
         <Stack spacing={3}>
@@ -73,11 +73,11 @@ const HotelsPage = ({ user, hotels }) => {
                   <strong>Contact :</strong> {hotel.contact}
                 </Typography>}
                 {hotel.tarifs && <>
-                    <Divider sx={{my: 1}}/>
-                    <Typography variant="body1" sx={{ mt: 1.5, whiteSpace: 'pre-wrap' }}>
-                        <strong>Tarifs négociés :</strong><br/>
-                        {hotel.tarifs}
-                    </Typography>
+                  <Divider sx={{my: 1}}/>
+                  <Typography variant="body1" sx={{ mt: 1.5, whiteSpace: 'pre-wrap' }}>
+                    <strong>Tarifs négociés :</strong><br/>
+                    {hotel.tarifs}
+                  </Typography>
                 </>}
               </CardContent>
               {hotel.lien_reservation && (

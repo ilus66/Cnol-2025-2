@@ -45,6 +45,7 @@ import {
   EmojiEvents,
   Map
 } from '@mui/icons-material';
+import QRCodeScanner from '../components/QRCodeScanner';
 
 export const getServerSideProps = async ({ req }) => {
   // Vérifier si l'utilisateur est connecté via la session
@@ -511,8 +512,12 @@ export default function MonEspace({ user }) {
       <Dialog open={scannerOpen} onClose={() => setScannerOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Scanner un Badge</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Entrez manuellement le code du badge à scanner :
+          <QRCodeScanner 
+            onScanSuccess={handleScanResult}
+            onScanError={(error) => console.warn(`QR scan error: ${error}`)}
+          />
+          <Typography variant="body2" color="text.secondary" sx={{ my: 2, textAlign: 'center' }}>
+            Ou entrez manuellement le code du badge :
           </Typography>
           <TextField
             fullWidth

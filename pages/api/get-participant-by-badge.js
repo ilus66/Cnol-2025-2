@@ -21,11 +21,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('inscription')
-      .select('nom, prenom, email, telephone, fonction, ville')
-      .eq('identifiant_badge', badge_code)
-      .single();
+      .select('nom, prenom, email, telephone, fonction, ville');
+
+    // Détecter si le code est un ID (cnol2025-XX) ou un identifiant de badge
+    const idMatch = badge_code.match(/^cnol2025-(\d+)$/);
+    
+    if (idMatch) {
+      // C'est un ID, on cherche par la colonne 'id'
+      const userId = parseInt(idMatch[1], 10);
+      query = query.eq('id', userId);
+    } else {
+      // Sinon, on cherche par la colonne 'identifiant_badge'
+      query = query.eq('identifiant_badge', badge_code);
+    }
+
+    const { data, error } = await query.single();
 
     if (error || !data) {
       console.error('Erreur Supabase Admin (recherche badge):', error);

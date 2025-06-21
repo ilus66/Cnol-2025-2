@@ -247,16 +247,32 @@ export default function MonEspace({ user }) {
   };
 
   const handleScanResult = async (result) => {
-    setScannedCode(result);
     setScannerOpen(false);
     
-    // Enregistrer le contact
+    let cleanResult = result;
+    try {
+      // Tenter de parser le résultat comme un JSON
+      const parsed = JSON.parse(result);
+      // Si le JSON a une clé 'data' ou une clé unique, on l'utilise
+      if (parsed.data) {
+        cleanResult = parsed.data;
+      } else {
+        // Fallback si la structure est inattendue
+        cleanResult = Object.values(parsed)[0] || result;
+      }
+    } catch (e) {
+      // Si ce n'est pas un JSON, on considère que c'est déjà une chaîne propre
+      cleanResult = result;
+    }
+    
+    setScannedCode(cleanResult);
+
     try {
       // 1. Vérifier si le badge scanné est valide
       const { data: scannedUser, error: scannedUserError } = await supabase
         .from('inscription')
         .select('id')
-        .eq('identifiant_badge', result)
+        .eq('identifiant_badge', cleanResult)
         .single();
       
       if (scannedUserError || !scannedUser) {
@@ -269,7 +285,7 @@ export default function MonEspace({ user }) {
         .from('contacts_collected')
         .select('id')
         .eq('collector_id', user.id)
-        .eq('scanned_badge_code', result)
+        .eq('scanned_badge_code', cleanResult)
         .single();
 
       if (existingContact) {
@@ -282,7 +298,7 @@ export default function MonEspace({ user }) {
         .from('contacts_collected')
         .insert({
           collector_id: user.id,
-          scanned_badge_code: result,
+          scanned_badge_code: cleanResult,
           scanned_at: new Date().toISOString()
         });
       

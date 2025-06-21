@@ -168,7 +168,7 @@ export default function MonEspace({ user }) {
     const canvas = document.getElementById('qr-code');
     if (canvas) {
       const link = document.createElement('a');
-      link.download = `badge-${user.badge_code}.png`;
+      link.download = `badge-${user.identifiant_badge}.png`;
       link.href = canvas.toDataURL();
       link.click();
     }
@@ -245,9 +245,9 @@ export default function MonEspace({ user }) {
             </Typography>
             {user.valide ? (
               <Stack alignItems="center" spacing={2}>
-                <QRCode id="qr-code" value={user.badge_code || user.email} size={200} />
+                <QRCode id="qr-code" value={user.identifiant_badge || user.email} size={200} />
                 <Typography variant="body2" color="text.secondary">
-                  Code: {user.badge_code || 'N/A'}
+                  Code: {user.identifiant_badge || 'N/A'}
                 </Typography>
                 <Button 
                   variant="contained" 

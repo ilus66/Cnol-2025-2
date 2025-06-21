@@ -43,14 +43,11 @@ export default async function handler(req, res) {
       const { data: exists } = await supabase
         .from('inscription')
         .select('id')
-        .eq('badge_code', badgeCode)
+        .eq('identifiant_badge', badgeCode)
         .single();
       if (!exists) isUnique = true;
     }
-    userToInsert.badge_code = badgeCode;
-
-    // Nettoyer l'ancien champ pour éviter les confusions
-    delete userToInsert.identifiant_badge;
+    userToInsert.identifiant_badge = badgeCode;
 
     // Insert dans Supabase sans les champs parasites
     const { error } = await supabase.from('inscription').insert([userToInsert]);

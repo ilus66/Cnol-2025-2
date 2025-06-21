@@ -1,7 +1,13 @@
-import { useEffect, useState } from 'react'
-import { Html5QrcodeScanner } from 'html5-qrcode'
+import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Box, Typography, Paper, Button, CircularProgress } from '@mui/material'
 import toast, { Toaster } from 'react-hot-toast'
+
+// On charge le QRCodeScanner de façon dynamique, en désactivant le rendu côté serveur (ssr: false)
+const QRCodeScanner = dynamic(() => import('../components/QRCodeScanner'), {
+  ssr: false,
+  loading: () => <CircularProgress />,
+})
 
 export default function ScanTicket() {
   const [scanning, setScanning] = useState(false)
@@ -10,38 +16,21 @@ export default function ScanTicket() {
   const [lastQr, setLastQr] = useState('')
   const [errorScan, setErrorScan] = useState('')
 
-  useEffect(() => {
-    if (!scanning) return
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      { 
-        fps: 10, 
-        qrbox: 250,
-        // Configuration pour utiliser la caméra arrière sur mobile
-        videoConstraints: {
-          facingMode: { ideal: "environment" } // "environment" = caméra arrière
-        }
-      },
-      false
-    )
-    scanner.render(
-      async (decodedText) => {
-        setScanning(false)
-        scanner.clear()
-        handleScan(decodedText)
-      },
-      (error) => {
-        // ignorer les erreurs de scan
-      }
-    )
-    return () => scanner.clear().catch(() => {})
-  }, [scanning])
+  const handleScanSuccess = (decodedText) => {
+    setScanning(false)
+    handleScan(decodedText)
+  }
+
+  const handleScanError = (errorMessage) => {
+    // On ignore les erreurs pour ne pas spammer l'utilisateur
+    console.warn(`QR Code scan error: ${errorMessage}`)
+  }
 
   const handleScan = async (decodedText) => {
-    setLoading(true);
-    setLastResult(null);
-    setLastQr(decodedText);
-    setErrorScan('');
+    setLoading(true)
+    setLastResult(null)
+    setLastQr(decodedText)
+    setErrorScan('')
     try {
       // On suppose que le QR code contient l'id de réservation (numérique ou string)
       const res = await fetch('/api/scan-ticket', {
@@ -95,8 +84,20 @@ export default function ScanTicket() {
           Lancer le scanner
         </Button>
       )}
-      <div id="reader" style={{ marginTop: 20 }} />
-      {lastResult && (
+
+      {scanning && (
+        <Box sx={{ mt: 2, maxWidth: '500px', mx: 'auto' }}>
+          <QRCodeScanner
+            onScanSuccess={handleScanSuccess}
+            onScanError={handleScanError}
+          />
+          <Button sx={{ mt: 2 }} variant="outlined" color="error" onClick={() => setScanning(false)}>
+            Annuler le Scan
+          </Button>
+        </Box>
+      )}
+
+      {!scanning && lastResult && (
         <Paper sx={{ mt: 3, p: 2 }}>
           <Typography variant="h6">Dernier ticket scanné :</Typography>
           <Typography><b>Nom :</b> {lastResult.nom} {lastResult.prenom}</Typography>
@@ -108,7 +109,7 @@ export default function ScanTicket() {
           <Button sx={{ mt: 2 }} variant="outlined" onClick={() => { setScanning(true); setLastResult(null); setErrorScan(''); setLastQr(''); }}>Scanner un autre ticket</Button>
         </Paper>
       )}
-      {errorScan && (
+      {!scanning && errorScan && (
         <Paper sx={{ mt: 3, p: 2, background: '#ffeaea' }}>
           <Typography color="error">Erreur : {errorScan}</Typography>
           <Typography variant="body2">QR brut : <code>{lastQr}</code></Typography>

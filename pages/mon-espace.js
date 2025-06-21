@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabaseClient';
 import { withSessionSsr } from '../lib/session';
 import { Box, Button, Typography, Paper, Stack, Divider, List, ListItem, ListItemText, Alert } from '@mui/material';
 import QRCode from 'qrcode.react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
 import Link from 'next/link';
 
 

@@ -501,8 +501,8 @@ export default function MonEspace({ user }) {
           </Grid>
         )}
 
-        {/* Postuler CNOL d'Or */}
-        {user.valide && (
+        {/* Postuler CNOL d'Or - Condition d'affichage ajoutée */}
+        {user.valide && user.fonction === 'Opticien' && (
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>

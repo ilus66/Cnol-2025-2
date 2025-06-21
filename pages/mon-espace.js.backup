@@ -1,27 +1,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
+import { withIronSessionSsr } from 'iron-session';
 import { Box, Button, Typography, Paper, Stack, Divider, Alert } from '@mui/material';
 import QRCode from 'qrcode.react';
 import Link from 'next/link';
 
-export const getServerSideProps = async ({ req }) => {
-  // Vérification simple de l'authentification via cookie
-  const sessionCookie = req.cookies['cnol-session'];
-  
-  if (!sessionCookie) {
-    return {
-      redirect: {
-        destination: '/identification',
-        permanent: false,
-      },
-    };
-  }
+export const getServerSideProps = withIronSessionSsr(
+  async function getServerSideProps({ req }) {
+    const sessionUser = req.session.user;
 
-  try {
-    // Décoder le cookie de session (simplifié)
-    const sessionUser = JSON.parse(decodeURIComponent(sessionCookie));
-    
     if (!sessionUser?.id) {
       return {
         redirect: {
@@ -38,6 +26,8 @@ export const getServerSideProps = async ({ req }) => {
       .single();
 
     if (error || !user) {
+      req.session.destroy();
+      await req.session.save();
       return {
         redirect: {
           destination: '/identification?error=user_not_found',
@@ -51,16 +41,15 @@ export const getServerSideProps = async ({ req }) => {
         user,
       },
     };
-  } catch (error) {
-    console.error('Erreur de session:', error);
-    return {
-      redirect: {
-        destination: '/identification',
-        permanent: false,
-      },
-    };
+  },
+  {
+    cookieName: 'cnol-session',
+    password: process.env.SESSION_SECRET || 'complex_password_at_least_32_characters_long',
+    cookieOptions: {
+      secure: process.env.NODE_ENV === 'production',
+    },
   }
-};
+);
 
 export default function MonEspace({ user }) {
   const router = useRouter();

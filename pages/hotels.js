@@ -1,15 +1,27 @@
 import React from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { withIronSessionSsr } from 'iron-session';
 import {
   Box, Typography, Paper, Stack, Card, CardContent, CardActions, Button, Link as MuiLink, Divider
 } from '@mui/material';
 import Link from 'next/link';
 
-export const getServerSideProps = withIronSessionSsr(
-  async function getServerSideProps({ req }) {
-    const user = req.session.user;
+export const getServerSideProps = async ({ req }) => {
+  // Vérification simple de l'authentification via cookie
+  const sessionCookie = req.cookies['cnol-session'];
+  
+  if (!sessionCookie) {
+    return {
+      redirect: {
+        destination: '/identification',
+        permanent: false,
+      },
+    };
+  }
 
+  try {
+    // Décoder le cookie de session (simplifié)
+    const user = JSON.parse(decodeURIComponent(sessionCookie));
+    
     if (!user?.id) {
       return {
         redirect: {
@@ -29,15 +41,16 @@ export const getServerSideProps = withIronSessionSsr(
     return {
       props: { user, hotels: hotels || [] },
     };
-  },
-  {
-    cookieName: 'cnol-session',
-    password: process.env.SESSION_SECRET || "complex_password_at_least_32_characters_long",
-    cookieOptions: {
-      secure: process.env.NODE_ENV === 'production',
-    },
+  } catch (error) {
+    console.error('Erreur de session:', error);
+    return {
+      redirect: {
+        destination: '/identification',
+        permanent: false,
+      },
+    };
   }
-);
+};
 
 const HotelsPage = ({ user, hotels }) => {
   if (!user) {

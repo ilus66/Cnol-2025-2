@@ -13,8 +13,15 @@ export default function ScanTicket() {
   useEffect(() => {
     if (!scanning) return
     const scanner = new Html5QrcodeScanner(
-      "reader-ticket",
-      { fps: 10, qrbox: 250 },
+      "reader",
+      { 
+        fps: 10, 
+        qrbox: 250,
+        // Configuration pour utiliser la caméra arrière sur mobile
+        videoConstraints: {
+          facingMode: { ideal: "environment" } // "environment" = caméra arrière
+        }
+      },
       false
     )
     scanner.render(
@@ -88,7 +95,7 @@ export default function ScanTicket() {
           Lancer le scanner
         </Button>
       )}
-      <div id="reader-ticket" style={{ marginTop: 20 }} />
+      <div id="reader" style={{ marginTop: 20 }} />
       {lastResult && (
         <Paper sx={{ mt: 3, p: 2 }}>
           <Typography variant="h6">Dernier ticket scanné :</Typography>

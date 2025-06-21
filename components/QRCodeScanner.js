@@ -14,10 +14,30 @@ export default function QRCodeScanner({ onScanSuccess, onScanError }) {
       try {
         const devices = await Html5Qrcode.getCameras();
         if (devices && devices.length > 0 && isMounted) {
-          const cameraId = devices[0].id;
+          // Préférer la caméra arrière sur mobile
+          let cameraId = devices[0].id;
+          
+          // Chercher la caméra arrière si disponible
+          const backCamera = devices.find(device => 
+            device.label.toLowerCase().includes('back') || 
+            device.label.toLowerCase().includes('arrière') ||
+            device.label.toLowerCase().includes('environment')
+          );
+          
+          if (backCamera) {
+            cameraId = backCamera.id;
+          }
+          
           await qrCode.start(
             cameraId,
-            { fps: 10, qrbox: { width: 250, height: 250 } },
+            { 
+              fps: 10, 
+              qrbox: { width: 250, height: 250 },
+              // Configuration pour forcer la caméra arrière
+              videoConstraints: {
+                facingMode: { ideal: "environment" }
+              }
+            },
             (decodedText) => {
               if (isMounted) onScanSuccess(decodedText);
             },

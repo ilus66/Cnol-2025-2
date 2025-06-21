@@ -16,7 +16,14 @@ export default function ScanPage() {
 
     const scanner = new Html5QrcodeScanner(
       "reader",
-      { fps: 10, qrbox: 250 },
+      { 
+        fps: 10, 
+        qrbox: 250,
+        // Configuration pour utiliser la caméra arrière sur mobile
+        videoConstraints: {
+          facingMode: { ideal: "environment" } // "environment" = caméra arrière
+        }
+      },
       false
     )
 

@@ -204,19 +204,37 @@ export default function MonEspace({ user }) {
     }
   };
 
-  const handleDownloadQRCode = () => {
+  const handleDownloadPdfBadge = async () => {
     // Vérifier que l'utilisateur est validé avant de permettre le téléchargement
     if (!user.valide) {
       alert('Votre inscription doit être validée par l\'administrateur avant de pouvoir télécharger votre badge.');
       return;
     }
-    
-    const canvas = document.getElementById('qr-code');
-    if (canvas) {
+
+    try {
+      // Afficher un indicateur de chargement
+      alert('Génération de votre badge PDF en cours... Veuillez patienter.');
+
+      const response = await fetch(`/api/generatedbadge?userId=${user.id}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'La génération du badge a échoué.');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.download = `qrcode-cnol-${user.identifiant_badge}.png`;
-      link.href = canvas.toDataURL();
+      link.href = url;
+      link.setAttribute('download', `badge-cnol2025-${user.nom}-${user.prenom}.pdf`);
+      document.body.appendChild(link);
       link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('Erreur lors du téléchargement du badge PDF:', error);
+      alert(`Erreur: ${error.message}`);
     }
   };
 
@@ -287,7 +305,7 @@ export default function MonEspace({ user }) {
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               <QrCodeScanner sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Votre Badge
+              Votre QR Code d'accès
             </Typography>
             {user.valide ? (
               <Stack alignItems="center" spacing={2}>
@@ -298,9 +316,9 @@ export default function MonEspace({ user }) {
                 <Button 
                   variant="contained" 
                   startIcon={<Download />}
-                  onClick={handleDownloadQRCode}
+                  onClick={handleDownloadPdfBadge}
                 >
-                  Télécharger mon QR Code
+                  Télécharger mon Badge (PDF)
                 </Button>
               </Stack>
             ) : (

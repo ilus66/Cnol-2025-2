@@ -17,11 +17,12 @@ export default async function handler(req, res) {
       .from('inscription')
       .select('id, nom, prenom, email, type_participant, valide, identifiant_badge')
       .eq('email', email)
-      .eq('identifiant_badge', badgeCode.toUpperCase())
+      // .eq('identifiant_badge', badgeCode.toUpperCase()) // TEMPORAIREMENT DÉSACTIVÉ POUR DIAGNOSTIC
       .single();
 
     if (error || !user) {
-      return res.status(401).json({ message: 'Email ou code badge incorrect.' });
+      // Si la recherche par email seul échoue, l'utilisateur n'existe vraiment pas.
+      return res.status(401).json({ message: 'Email non trouvé dans la base de données.' });
     }
 
     const session = {

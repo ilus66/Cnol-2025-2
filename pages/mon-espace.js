@@ -113,6 +113,9 @@ export default function MonEspace({ user }) {
   const [contacts, setContacts] = useState([]);
   const [settings, setSettings] = useState({});
 
+  // Détermine si l'utilisateur a le droit de voir les ateliers/masterclass
+  const isAllowedForWorkshops = user && (user.fonction === 'Opticien' || user.fonction === 'Ophtalmologue');
+
   useEffect(() => {
     // Vérifier les permissions de notifications
     if ('Notification' in window) {
@@ -287,8 +290,8 @@ export default function MonEspace({ user }) {
           </Paper>
         </Grid>
 
-        {/* Mes Réservations Ateliers */}
-        {user.valide && (
+        {/* Mes Réservations Ateliers - Condition d'affichage ajoutée */}
+        {user.valide && isAllowedForWorkshops && (
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
@@ -335,8 +338,8 @@ export default function MonEspace({ user }) {
           </Grid>
         )}
 
-        {/* Mes Réservations Masterclass */}
-        {user.valide && (
+        {/* Mes Réservations Masterclass - Condition d'affichage ajoutée */}
+        {user.valide && isAllowedForWorkshops && (
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>

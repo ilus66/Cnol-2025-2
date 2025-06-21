@@ -215,7 +215,7 @@ export default function MonEspace({ user }) {
       // Afficher un indicateur de chargement
       alert('Génération de votre badge PDF en cours... Veuillez patienter.');
 
-      const response = await fetch(`/api/generatedbadge?userId=${user.id}`);
+      const response = await fetch(`/api/generatedbadge?id=${user.id}`);
       
       if (!response.ok) {
         const errorData = await response.json();

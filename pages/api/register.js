@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
   try {
     // Liste des champs autorisés (ceux de la table inscription)
-    const allowedFields = ['email', 'telephone', 'nom', 'prenom', 'fonction', 'ville', 'identifiant_badge'];
+    const allowedFields = ['email', 'telephone', 'nom', 'prenom', 'fonction', 'ville', 'badge_code'];
     const userToInsert = {};
     for (const field of allowedFields) {
       if (user[field]) userToInsert[field] = user[field];
@@ -43,11 +43,14 @@ export default async function handler(req, res) {
       const { data: exists } = await supabase
         .from('inscription')
         .select('id')
-        .eq('identifiant_badge', badgeCode)
+        .eq('badge_code', badgeCode)
         .single();
       if (!exists) isUnique = true;
     }
-    userToInsert.identifiant_badge = badgeCode;
+    userToInsert.badge_code = badgeCode;
+
+    // Nettoyer l'ancien champ pour éviter les confusions
+    delete userToInsert.identifiant_badge;
 
     // Insert dans Supabase sans les champs parasites
     const { error } = await supabase.from('inscription').insert([userToInsert]);

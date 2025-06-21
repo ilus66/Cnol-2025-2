@@ -7,6 +7,23 @@ export default async function handler(req, res) {
   const { atelier_id, nom, prenom, email, telephone, type } = req.body
   if (!atelier_id || !nom || !prenom || !email || !telephone || !type) return res.status(400).json({ message: 'Champs manquants' })
 
+  // Vérifier que l'utilisateur est validé
+  const { data: inscritValidation, error: errInscrit } = await supabase
+    .from('inscription')
+    .select('valide')
+    .eq('email', email)
+    .single()
+  
+  if (errInscrit || !inscritValidation) {
+    return res.status(404).json({ message: 'Utilisateur non trouvé' })
+  }
+  
+  if (!inscritValidation.valide) {
+    return res.status(403).json({ 
+      message: 'Accès refusé : Vous devez être validé par l\'administrateur pour effectuer des réservations.' 
+    })
+  }
+
   // Récupérer infos atelier
   const { data: atelier, error: errAtelier } = await supabase.from('ateliers').select('*').eq('id', atelier_id).single()
   if (errAtelier || !atelier) return res.status(404).json({ message: 'Atelier introuvable' })

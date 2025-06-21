@@ -115,8 +115,6 @@ export const getServerSideProps = async ({ req }) => {
 export default function MonEspace({ user }) {
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [scannedCode, setScannedCode] = useState('');
   const [contacts, setContacts] = useState([]);
   const [settings, setSettings] = useState({});
 
@@ -246,101 +244,6 @@ export default function MonEspace({ user }) {
     } catch (error) {
       console.error('Erreur lors du téléchargement du badge PDF:', error);
       alert(`Erreur: ${error.message}`);
-    }
-  };
-
-  const handleScanBadge = () => {
-    setScannerOpen(true);
-  };
-
-  const handleScanResult = async (result) => {
-    setScannerOpen(false);
-    
-    // --- Logique de nettoyage du QR Code, copiée de la page admin ---
-    let cleanResult = null;
-    try {
-        if (result.startsWith('cnol2025-')) {
-            cleanResult = result;
-        } else if (/^\d+$/.test(result)) {
-            cleanResult = `cnol2025-${result}`;
-        } else if (result.includes('id=')) {
-            const url = new URL(result);
-            const id = url.searchParams.get('id');
-            if (id && /^\d+$/.test(id)) {
-                cleanResult = `cnol2025-${id}`;
-            }
-        } else {
-            const parsed = JSON.parse(result);
-            if (parsed.data) {
-                cleanResult = parsed.data;
-            } else {
-                cleanResult = Object.values(parsed)[0] || result;
-            }
-        }
-    } catch (e) {
-      cleanResult = result;
-    }
-    // --- Fin de la logique de nettoyage ---
-
-    if (!cleanResult) {
-        alert('Format du QR code non reconnu.');
-        return;
-    }
-
-    setScannedCode(cleanResult);
-
-    try {
-      // 1. Vérifier si le badge scanné est valide
-      const { data: scannedUser, error: scannedUserError } = await supabase
-        .from('inscription')
-        .select('id')
-        .eq('identifiant_badge', cleanResult)
-        .single();
-      
-      if (scannedUserError || !scannedUser) {
-        alert('Badge invalide ou non trouvé.');
-        return;
-      }
-
-      // 2. Vérifier si le contact n'a pas déjà été scanné
-      const { data: existingContact } = await supabase
-        .from('contacts_collected')
-        .select('id')
-        .eq('collector_id', user.id)
-        .eq('scanned_badge_code', cleanResult)
-        .single();
-
-      if (existingContact) {
-        alert('Ce contact a déjà été scanné.');
-        return;
-      }
-
-      // 3. Insérer le nouveau contact
-      const { error: insertError } = await supabase
-        .from('contacts_collected')
-        .insert({
-          collector_id: user.id,
-          scanned_badge_code: cleanResult,
-          scanned_at: new Date().toISOString()
-        });
-      
-      if (insertError) throw insertError;
-
-      alert('Contact ajouté avec succès !');
-      
-      // 4. Recharger la liste des contacts pour l'afficher
-      const { data: refreshedContacts, error: rpcError } = await supabase
-        .rpc('get_user_contacts', { p_collector_id: user.id });
-      
-      if (rpcError) {
-        console.error('Erreur rafraichissement contacts:', rpcError);
-      } else {
-        setContacts(refreshedContacts || []);
-      }
-
-    } catch (error) {
-      console.error("Erreur lors de l'ajout du contact:", error);
-      alert("Une erreur est survenue lors de l'ajout du contact.");
     }
   };
 
@@ -527,18 +430,18 @@ export default function MonEspace({ user }) {
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
                 <QrCodeScanner sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Scanner un Badge
+                Scanner un Contact
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Scannez le badge d'un autre participant pour échanger vos coordonnées
+                Scannez le badge d'un autre participant pour échanger vos coordonnées.
               </Typography>
               <Button 
                 variant="contained" 
                 fullWidth
+                href="/scan-contact"
                 startIcon={<QrCodeScanner />}
-                onClick={handleScanBadge}
               >
-                Scanner un badge
+                Ouvrir le scanner
               </Button>
             </Paper>
           </Grid>
@@ -660,39 +563,6 @@ export default function MonEspace({ user }) {
           </Paper>
         </Grid>
       </Grid>
-
-      {/* Dialog Scanner */}
-      <Dialog open={scannerOpen} onClose={() => setScannerOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Scanner un Badge</DialogTitle>
-        <DialogContent>
-          {scannerOpen && ( // On s'assure de ne rendre le scanner que s'il est ouvert
-            <QRCodeScanner 
-              onScanSuccess={handleScanResult}
-              onScanError={(error) => console.warn(`QR scan error: ${error}`)}
-            />
-          )}
-          <Typography variant="body2" color="text.secondary" sx={{ my: 2, textAlign: 'center' }}>
-            Ou entrez manuellement le code du badge :
-          </Typography>
-          <TextField
-            fullWidth
-            label="Code du badge"
-            value={scannedCode}
-            onChange={(e) => setScannedCode(e.target.value)}
-            placeholder="Entrez le code du badge"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setScannerOpen(false)}>Annuler</Button>
-          <Button 
-            onClick={() => handleScanResult(scannedCode)} 
-            variant="contained"
-            disabled={!scannedCode}
-          >
-            Ajouter le contact
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

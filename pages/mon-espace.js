@@ -1,16 +1,60 @@
 import { useState, useEffect } from 'react';
-import { Box, Button, TextField, Typography, Paper, Stack, Divider, List, ListItem, ListItemText } from '@mui/material';
+import { useRouter } from 'next/router';
+import { supabase } from '../lib/supabaseClient';
+import { withSessionSsr } from '../lib/session';
+import { Box, Button, TextField, Typography, Paper, Stack, Divider, List, ListItem, ListItemText, Alert, CircularProgress } from '@mui/material';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import QRCode from 'qrcode.react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
-export default function MonEspace() {
+export const getServerSideProps = withSessionSsr(
+  async function getServerSideProps({ req }) {
+    const sessionUser = req.session.user;
+
+    if (!sessionUser?.isLoggedIn) {
+      return {
+        redirect: {
+          destination: '/identification',
+          permanent: false,
+        },
+      };
+    }
+
+    const { data: user, error } = await supabase
+      .from('inscriptions')
+      .select('*, reservations_ateliers(*, ateliers(*)), reservations_masterclass(*, masterclasses(*))')
+      .eq('id', sessionUser.id)
+      .single();
+
+    if (error || !user) {
+      req.session.destroy();
+      await req.session.save();
+      return {
+        redirect: {
+          destination: '/identification?error=user_not_found',
+          permanent: false,
+        },
+      };
+    }
+
+    return {
+      props: {
+        user,
+      },
+    };
+  }
+);
+
+export default function MonEspace({ user }) {
+  const router = useRouter();
   const [form, setForm] = useState({ code: '', email: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [user, setUser] = useState(null);
-  const [ateliers, setAteliers] = useState([]);
-  const [masterclass, setMasterclass] = useState([]);
+  const [ateliers, setAteliers] = useState(user.reservations_ateliers || []);
+  const [masterclass, setMasterclass] = useState(user.reservations_masterclass || []);
   const [notifications, setNotifications] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [showScanner, setShowScanner] = useState(false);
@@ -99,12 +143,9 @@ export default function MonEspace() {
     setReservationMessage('');
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setAteliers([]);
-    setMasterclass([]);
-    setNotifications([]);
-    setForm({ code: '', email: '' });
+  const handleLogout = async () => {
+    await fetch('/api/logout', { method: 'POST' });
+    router.push('/identification');
   };
 
   // Placeholder pour activer les notifications push

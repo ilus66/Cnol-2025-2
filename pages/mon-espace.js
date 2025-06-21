@@ -26,7 +26,8 @@ import {
   ListItemText,
   ListItemAvatar,
   Avatar,
-  Badge
+  Badge,
+  CircularProgress
 } from '@mui/material';
 import QRCode from 'qrcode.react';
 import Link from 'next/link';
@@ -45,7 +46,13 @@ import {
   EmojiEvents,
   Map
 } from '@mui/icons-material';
-import QRCodeScanner from '../components/QRCodeScanner';
+import dynamic from 'next/dynamic';
+
+// On charge le QRCodeScanner de façon dynamique pour éviter les erreurs de build
+const QRCodeScanner = dynamic(() => import('../components/QRCodeScanner'), {
+  ssr: false,
+  loading: () => <CircularProgress />,
+});
 
 export const getServerSideProps = async ({ req }) => {
   // Vérifier si l'utilisateur est connecté via la session
@@ -249,22 +256,26 @@ export default function MonEspace({ user }) {
   const handleScanResult = async (result) => {
     setScannerOpen(false);
     
-    let cleanResult = result;
+    // --- Logique de nettoyage du QR Code, copiée de la page admin ---
+    let cleanResult = null;
     try {
-      // Tenter de parser le résultat comme un JSON
-      const parsed = JSON.parse(result);
-      // Si le JSON a une clé 'data' ou une clé unique, on l'utilise
-      if (parsed.data) {
-        cleanResult = parsed.data;
-      } else {
-        // Fallback si la structure est inattendue
-        cleanResult = Object.values(parsed)[0] || result;
-      }
+        if (result.startsWith('cnol2025-')) {
+            cleanResult = result;
+        } else if (/^\d+$/.test(result)) {
+            cleanResult = `cnol2025-${result}`;
+        } else {
+            const parsed = JSON.parse(result);
+            if (parsed.data) {
+                cleanResult = parsed.data;
+            } else {
+                cleanResult = Object.values(parsed)[0] || result;
+            }
+        }
     } catch (e) {
-      // Si ce n'est pas un JSON, on considère que c'est déjà une chaîne propre
       cleanResult = result;
     }
-    
+    // --- Fin de la logique de nettoyage ---
+
     setScannedCode(cleanResult);
 
     try {
@@ -643,10 +654,12 @@ export default function MonEspace({ user }) {
       <Dialog open={scannerOpen} onClose={() => setScannerOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Scanner un Badge</DialogTitle>
         <DialogContent>
-          <QRCodeScanner 
-            onScanSuccess={handleScanResult}
-            onScanError={(error) => console.warn(`QR scan error: ${error}`)}
-          />
+          {scannerOpen && ( // On s'assure de ne rendre le scanner que s'il est ouvert
+            <QRCodeScanner 
+              onScanSuccess={handleScanResult}
+              onScanError={(error) => console.warn(`QR scan error: ${error}`)}
+            />
+          )}
           <Typography variant="body2" color="text.secondary" sx={{ my: 2, textAlign: 'center' }}>
             Ou entrez manuellement le code du badge :
           </Typography>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { 
   Box, Button, TextField, MenuItem, Select, InputLabel, FormControl, Typography,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Checkbox,
-  CircularProgress, Stack, Pagination
+  CircularProgress, Stack, Pagination, List, ListItem, ListItemText
 } from '@mui/material'
 import toast, { Toaster } from 'react-hot-toast'
 import Link from 'next/link'
@@ -259,6 +259,7 @@ const AdminPage = () => {
         <Button variant="outlined" href="/entrees" fullWidth={isMobile}>Voir les entrées</Button>
         <Button variant="outlined" color="secondary" href="/admin/ateliers" fullWidth={isMobile}>Gérer les ateliers</Button>
         <Button variant="outlined" color="secondary" href="/admin/masterclass" fullWidth={isMobile}>Gérer les masterclass</Button>
+        <Button variant="outlined" color="info" href="/admin/hotels" fullWidth={isMobile}>Gérer les Hôtels</Button>
         <Button variant="outlined" color="info" href="/admin/statistiques" fullWidth={isMobile}>Statistiques</Button>
         <Button variant="outlined" color="error" href="/admin/notifications" fullWidth={isMobile}>Notifications</Button>
       </Stack>

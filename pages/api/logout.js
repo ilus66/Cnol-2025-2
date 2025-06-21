@@ -1,16 +1,19 @@
-import { withIronSessionApiRoute } from "iron-session";
+import cookie from 'cookie';
 
-const sessionOptions = {
-  password: process.env.SESSION_SECRET || "complex_password_at_least_32_characters_long",
-  cookieName: "cnol-session",
-  cookieOptions: {
-    secure: process.env.NODE_ENV === "production",
-  },
-};
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method Not Allowed' });
+  }
 
-function logoutRoute(req, res) {
-  req.session.destroy();
-  res.json({ isLoggedIn: false });
+  // Supprimer le cookie de session
+  const logoutCookie = cookie.serialize('cnol-session', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 0, // Expire immédiatement
+    path: '/',
+    sameSite: 'lax',
+  });
+
+  res.setHeader('Set-Cookie', logoutCookie);
+  res.json({ message: 'Déconnexion réussie' });
 }
-
-export default withIronSessionApiRoute(logoutRoute, sessionOptions);

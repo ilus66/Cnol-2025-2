@@ -1,15 +1,7 @@
 import { supabase } from '../../lib/supabaseClient';
-import { withIronSessionApiRoute } from 'iron-session';
+import cookie from 'cookie';
 
-const sessionOptions = {
-  password: process.env.SESSION_SECRET || 'complex_password_at_least_32_characters_long',
-  cookieName: 'cnol-session',
-  cookieOptions: {
-    secure: process.env.NODE_ENV === 'production',
-  },
-};
-
-async function loginRoute(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
@@ -37,16 +29,25 @@ async function loginRoute(req, res) {
       return res.status(401).json({ message: 'Aucun utilisateur trouvé avec cette combinaison email/badge.' });
     }
 
-    // Mettre à jour la session avec les informations utilisateur
-    req.session.user = {
+    // Créer la session avec les informations utilisateur
+    const sessionData = {
       id: user.id,
       email: user.email,
       prenom: user.prenom,
       valide: user.valide,
       participant_type: user.participant_type,
     };
-    await req.session.save();
 
+    // Définir le cookie de session
+    const sessionCookie = cookie.serialize('cnol-session', JSON.stringify(sessionData), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7, // 1 semaine
+      path: '/',
+      sameSite: 'lax',
+    });
+
+    res.setHeader('Set-Cookie', sessionCookie);
     res.status(200).json({ message: 'Connexion réussie', user });
 
   } catch (error) {
@@ -54,5 +55,3 @@ async function loginRoute(req, res) {
     res.status(500).json({ message: 'Erreur interne du serveur.' });
   }
 }
-
-export default withIronSessionApiRoute(loginRoute, sessionOptions);

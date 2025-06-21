@@ -60,11 +60,10 @@ export const getServerSideProps = async ({ req }) => {
   }
 
   try {
-    // Décoder la session (iron-session stocke les données encodées)
+    // Décoder la session
     const sessionData = JSON.parse(decodeURIComponent(sessionCookie));
-    const user = sessionData.user || sessionData;
     
-    if (!user || !user.id) {
+    if (!sessionData || !sessionData.id) {
       return {
         redirect: {
           destination: '/identification',
@@ -86,7 +85,7 @@ export const getServerSideProps = async ({ req }) => {
           masterclasses(*)
         )
       `)
-      .eq('id', user.id)
+      .eq('id', sessionData.id)
       .single();
 
     if (error || !userData) {

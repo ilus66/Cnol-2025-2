@@ -131,11 +131,15 @@ export default function MonEspace({ user }) {
 
     // Charger les contacts collectés
     const fetchContacts = async () => {
-      const { data } = await supabase
-        .from('contacts_collected')
-        .select('*')
-        .eq('collector_id', user.id);
-      if (data) setContacts(data);
+      const { data, error } = await supabase.rpc('get_user_contacts', {
+        p_collector_id: user.id,
+      });
+
+      if (error) {
+        console.error('Erreur chargement contacts:', error);
+      } else {
+        setContacts(data || []);
+      }
     };
     fetchContacts();
   }, [user.id]);
@@ -248,7 +252,33 @@ export default function MonEspace({ user }) {
     
     // Enregistrer le contact
     try {
-      const { error } = await supabase
+      // 1. Vérifier si le badge scanné est valide
+      const { data: scannedUser, error: scannedUserError } = await supabase
+        .from('inscription')
+        .select('id')
+        .eq('identifiant_badge', result)
+        .single();
+      
+      if (scannedUserError || !scannedUser) {
+        alert('Badge invalide ou non trouvé.');
+        return;
+      }
+
+      // 2. Vérifier si le contact n'a pas déjà été scanné
+      const { data: existingContact } = await supabase
+        .from('contacts_collected')
+        .select('id')
+        .eq('collector_id', user.id)
+        .eq('scanned_badge_code', result)
+        .single();
+
+      if (existingContact) {
+        alert('Ce contact a déjà été scanné.');
+        return;
+      }
+
+      // 3. Insérer le nouveau contact
+      const { error: insertError } = await supabase
         .from('contacts_collected')
         .insert({
           collector_id: user.id,
@@ -256,17 +286,23 @@ export default function MonEspace({ user }) {
           scanned_at: new Date().toISOString()
         });
       
-      if (!error) {
-        alert('Contact ajouté avec succès !');
-        // Recharger les contacts
-        const { data } = await supabase
-          .from('contacts_collected')
-          .select('*')
-          .eq('collector_id', user.id);
-        if (data) setContacts(data);
+      if (insertError) throw insertError;
+
+      alert('Contact ajouté avec succès !');
+      
+      // 4. Recharger la liste des contacts pour l'afficher
+      const { data: refreshedContacts, error: rpcError } = await supabase
+        .rpc('get_user_contacts', { p_collector_id: user.id });
+      
+      if (rpcError) {
+        console.error('Erreur rafraichissement contacts:', rpcError);
+      } else {
+        setContacts(refreshedContacts || []);
       }
+
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du contact:', error);
+      console.error("Erreur lors de l'ajout du contact:", error);
+      alert("Une erreur est survenue lors de l'ajout du contact.");
     }
   };
 
@@ -477,24 +513,39 @@ export default function MonEspace({ user }) {
               <Typography variant="h6" gutterBottom>
                 <ContactPhone sx={{ mr: 1, verticalAlign: 'middle' }} />
                 Contacts Collectés
-                <Badge badgeContent={contacts.length} color="primary" sx={{ ml: 1 }}>
-                  <ContactPhone />
-                </Badge>
+                <Badge badgeContent={contacts.length} color="primary" sx={{ ml: 2 }} />
               </Typography>
               {contacts.length > 0 ? (
-                <List>
-                  {contacts.slice(0, 5).map((contact, index) => (
-                    <ListItem key={index}>
+                <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
+                  {contacts.map((contact, index) => (
+                    <ListItem key={index} alignItems="flex-start" divider={index < contacts.length - 1}>
+                      <ListItemAvatar>
+                        <Avatar>
+                          <Person />
+                        </Avatar>
+                      </ListItemAvatar>
                       <ListItemText
-                        primary={`Badge: ${contact.scanned_badge_code}`}
-                        secondary={new Date(contact.scanned_at).toLocaleDateString()}
+                        primary={`${contact.prenom} ${contact.nom}`}
+                        secondary={
+                          <>
+                            <Typography
+                              sx={{ display: 'block' }}
+                              component="span"
+                              variant="body2"
+                              color="text.primary"
+                            >
+                              {contact.fonction}
+                            </Typography>
+                            {`${contact.email} • ${contact.telephone || 'N/A'}`}
+                          </>
+                        }
                       />
                     </ListItem>
                   ))}
                 </List>
               ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Aucun contact collecté
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                  Aucun contact collecté. Scannez un badge pour commencer !
                 </Typography>
               )}
             </Paper>

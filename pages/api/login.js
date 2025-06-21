@@ -55,4 +55,4 @@ async function loginRoute(req, res) {
   }
 }
 
-export default withIronSessionApiRoute(loginRoute, sessionOptions); 
+export default withIronSessionApiRoute(loginRoute, sessionOptions);

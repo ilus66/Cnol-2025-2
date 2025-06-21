@@ -59,7 +59,16 @@ export default function ScanContactPage({ user }) {
     try {
       // Appel de la nouvelle API backend qui utilise la clé de service
       const response = await fetch(`/api/get-participant-by-badge?badge_code=${decodedText}`);
-      const scannedUserData = await response.json();
+      
+      // Gestion robuste de la réponse
+      let scannedUserData;
+      const responseText = await response.text();
+      try {
+        scannedUserData = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Impossible de parser la réponse du serveur:", responseText);
+        throw new Error("Erreur de communication avec le serveur. Il est possible qu'une clé API manque sur le serveur.");
+      }
 
       if (!response.ok) {
         throw new Error(scannedUserData.message || 'Badge invalide ou participant non trouvé.');

@@ -57,14 +57,12 @@ export default function ScanContactPage({ user }) {
     setLastQr(decodedText);
 
     try {
-      const { data: scannedUserData, error: selectError } = await supabase
-        .from('inscription')
-        .select('nom, prenom, email, telephone, fonction, ville')
-        .eq('identifiant_badge', decodedText)
-        .single();
-      
-      if (selectError || !scannedUserData) {
-        throw new Error('Badge invalide ou participant non trouvé.');
+      // Appel de la nouvelle API backend qui utilise la clé de service
+      const response = await fetch(`/api/get-participant-by-badge?badge_code=${decodedText}`);
+      const scannedUserData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(scannedUserData.message || 'Badge invalide ou participant non trouvé.');
       }
       
       const { data: existingContact } = await supabase

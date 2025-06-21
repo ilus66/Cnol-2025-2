@@ -263,6 +263,12 @@ export default function MonEspace({ user }) {
             cleanResult = result;
         } else if (/^\d+$/.test(result)) {
             cleanResult = `cnol2025-${result}`;
+        } else if (result.includes('id=')) {
+            const url = new URL(result);
+            const id = url.searchParams.get('id');
+            if (id && /^\d+$/.test(id)) {
+                cleanResult = `cnol2025-${id}`;
+            }
         } else {
             const parsed = JSON.parse(result);
             if (parsed.data) {
@@ -275,6 +281,11 @@ export default function MonEspace({ user }) {
       cleanResult = result;
     }
     // --- Fin de la logique de nettoyage ---
+
+    if (!cleanResult) {
+        alert('Format du QR code non reconnu.');
+        return;
+    }
 
     setScannedCode(cleanResult);
 
@@ -636,15 +647,15 @@ export default function MonEspace({ user }) {
               CNOL 2025 - Rabat, Maroc
             </Typography>
             <Box sx={{ height: 300, width: '100%', borderRadius: 2, overflow: 'hidden' }}>
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3323.5!2d-6.8498!3d34.0209!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzTCsDAxJzE1LjIiTiA2wrA1MCc1OS4zIlc!5e0!3m2!1sfr!2sfr!4v1234567890"
+              <iframe 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3308.556696027705!2d-6.870305288928752!3d33.97823197307313!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xda76cdca2be509f%3A0x5737e47164ae0407!2sFondation%20Mohammed%20VI%20de%20Promotion%20des%20Oeuvres%20Sociales%20de%20l'Education%20et%20de%20Formation!5e0!3m2!1sfr!2sma!4v1750541270419!5m2!1sfr!2sma"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
                 allowFullScreen=""
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-              />
+              ></iframe>
             </Box>
           </Paper>
         </Grid>

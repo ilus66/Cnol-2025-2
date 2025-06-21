@@ -1,9 +1,16 @@
-import { withSessionRoute } from '../../lib/session';
+import { withIronSessionApiRoute } from "iron-session";
+
+const sessionOptions = {
+  password: process.env.SESSION_SECRET || "complex_password_at_least_32_characters_long",
+  cookieName: "cnol-session",
+  cookieOptions: {
+    secure: process.env.NODE_ENV === "production",
+  },
+};
 
 function logoutRoute(req, res) {
   req.session.destroy();
-  res.setHeader('cache-control', 'no-store, max-age=0');
-  res.status(200).json({ ok: true });
+  res.json({ isLoggedIn: false });
 }
 
-export default withSessionRoute(logoutRoute);
+export default withIronSessionApiRoute(logoutRoute, sessionOptions);

@@ -1,8 +1,16 @@
 import { supabase } from '../../lib/supabaseClient';
+import { withIronSessionApiRoute } from 'iron-session';
 import jwt from 'jsonwebtoken';
-import { withSessionRoute } from '../../lib/session';
 
-export default withSessionRoute(async function verifyMagicLink(req, res) {
+const sessionOptions = {
+  password: process.env.SESSION_SECRET || 'complex_password_at_least_32_characters_long',
+  cookieName: 'cnol-session',
+  cookieOptions: {
+    secure: process.env.NODE_ENV === 'production',
+  },
+};
+
+async function handler(req, res) {
   const { token } = req.query;
 
   if (!token) {
@@ -29,16 +37,17 @@ export default withSessionRoute(async function verifyMagicLink(req, res) {
     ...(masterclass?.map(r => ({ type: 'Masterclass', titre: r.masterclass?.titre, date_heure: r.masterclass?.date_heure })) || [])
   ];
 
-  // Créer la session pour l'utilisateur
+  // Mettre à jour la session avec les informations utilisateur
   req.session.user = {
     id: user.id,
     email: user.email,
     nom: user.nom,
     prenom: user.prenom,
-    isLoggedIn: true,
+    valide: user.valide,
   };
   await req.session.save();
 
-  // Rediriger vers l'espace personnel
-  res.redirect('/mon-espace');
-});
+  res.redirect(307, '/mon-espace');
+}
+
+export default withIronSessionApiRoute(handler, sessionOptions);

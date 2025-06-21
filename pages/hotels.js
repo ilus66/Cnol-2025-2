@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { withSessionSsr } from '../lib/session';
+import { withIronSessionSsr } from 'iron-session';
 import {
   Box, Typography, Paper, Stack, CircularProgress, Card, CardContent, CardActions, Button, Link as MuiLink, Divider
 } from '@mui/material';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 
-export const getServerSideProps = withSessionSsr(async function ({ req }) {
+export const getServerSideProps = withIronSessionSsr(async function ({ req }) {
   const user = req.session.user;
 
   if (!user) {
@@ -29,6 +29,12 @@ export const getServerSideProps = withSessionSsr(async function ({ req }) {
   return {
     props: { user, hotels: hotels || [] },
   };
+}, {
+  cookieName: 'cnol-session',
+  password: process.env.SESSION_SECRET || "complex_password_at_least_32_characters_long",
+  cookieOptions: {
+    secure: process.env.NODE_ENV === 'production',
+  },
 });
 
 const HotelsPage = ({ user, hotels }) => {

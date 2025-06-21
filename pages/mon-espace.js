@@ -47,6 +47,7 @@ import {
   Map
 } from '@mui/icons-material';
 import dynamic from 'next/dynamic';
+import { toast } from 'react-hot-toast';
 
 // On charge le QRCodeScanner de façon dynamique pour éviter les erreurs de build
 const QRCodeScanner = dynamic(() => import('../components/QRCodeScanner'), {
@@ -160,11 +161,25 @@ export default function MonEspace({ user }) {
       return;
     }
 
+    // Fonction utilitaire pour convertir la clé VAPID
+    function urlBase64ToUint8Array(base64String) {
+      const padding = "=".repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding)
+        .replace(/\-/g, "+")
+        .replace(/_/g, "/");
+    
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+    
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
     if (Notification.permission === 'granted') {
-      // Se désabonner (logique à implémenter si nécessaire, pour l'instant on désactive juste)
-      setNotificationsEnabled(false);
-      alert("Notifications désactivées. Pour réactiver, veuillez gérer les permissions de votre navigateur.");
-      // Idéalement, il faudrait aussi appeler une API pour supprimer l'abonnement de la BDD.
+      // Se désabonner (logique à implémenter si nécessaire)
+      alert("Notifications déjà activées. Pour les désactiver, gérez les permissions dans les paramètres de votre navigateur.");
       return;
     }
 
@@ -182,15 +197,23 @@ export default function MonEspace({ user }) {
     }
     
     setNotificationsEnabled(true);
-    
+    const toastId = toast.loading('Activation des notifications...');
+
     try {
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidPublicKey) {
+        throw new Error('La clé VAPID publique n\'est pas configurée.');
+      }
+      
+      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+
       // Enregistrer le Service Worker
       const sw = await navigator.serviceWorker.ready;
       
       // S'abonner aux notifications push
       const subscription = await sw.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        applicationServerKey,
       });
 
       // Envoyer l'abonnement au serveur
@@ -201,14 +224,15 @@ export default function MonEspace({ user }) {
       });
 
       if (!response.ok) {
-        throw new Error('Échec de l\'abonnement côté serveur.');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Échec de l\'abonnement côté serveur.');
       }
 
-      alert('Vous êtes maintenant abonné aux notifications !');
+      toast.success('Vous êtes maintenant abonné aux notifications !', { id: toastId });
 
     } catch (error) {
       console.error("Erreur lors de l'abonnement aux notifications:", error);
-      alert("Une erreur est survenue lors de l'abonnement aux notifications.");
+      toast.error(`Erreur: ${error.message}`, { id: toastId });
       setNotificationsEnabled(false);
     }
   };

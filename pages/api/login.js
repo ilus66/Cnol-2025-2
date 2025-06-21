@@ -20,8 +20,13 @@ export default async function handler(req, res) {
       .eq('identifiant_badge', badgeCode.trim().toUpperCase())
       .single();
 
-    if (error || !user) {
-      return res.status(401).json({ message: 'Email ou code badge incorrect.' });
+    if (error) {
+      console.error('Supabase query error:', error.message);
+      return res.status(500).json({ message: `Erreur de la base de données: ${error.message}` });
+    }
+
+    if (!user) {
+      return res.status(401).json({ message: 'Aucun utilisateur trouvé avec cette combinaison email/badge.' });
     }
 
     const session = {

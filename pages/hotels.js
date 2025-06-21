@@ -95,4 +95,4 @@ const HotelsPage = ({ user, hotels }) => {
   );
 };
 
-export default HotelsPage; 
+export default HotelsPage;

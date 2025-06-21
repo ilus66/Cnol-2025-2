@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   try {
     const { data: user, error } = await supabase
       .from('inscription')
-      .select('id, nom, prenom, email, type_participant, valide, identifiant_badge')
+      .select('id, nom, prenom, email, type, valide, identifiant_badge')
       .eq('email', email.trim())
       .eq('identifiant_badge', badgeCode.trim().toUpperCase())
       .single();
@@ -34,6 +34,7 @@ export default async function handler(req, res) {
       email: user.email,
       prenom: user.prenom,
       valide: user.valide,
+      type: user.type,
     };
 
     const sessionCookie = cookie.serialize('cnol-session', JSON.stringify(session), {

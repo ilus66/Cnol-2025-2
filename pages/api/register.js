@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
   try {
     // Liste des champs autorisés (ceux de la table inscription)
-    const allowedFields = ['email', 'telephone', 'nom', 'prenom', 'fonction', 'ville', 'badge_code'];
+    const allowedFields = ['email', 'telephone', 'nom', 'prenom', 'fonction', 'ville', 'identifiant_badge'];
     const userToInsert = {};
     for (const field of allowedFields) {
       if (user[field]) userToInsert[field] = user[field];

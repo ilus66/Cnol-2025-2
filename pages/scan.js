@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react'
-import { Html5QrcodeScanner } from 'html5-qrcode'
+import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Box, Typography, Paper, Button, CircularProgress } from '@mui/material'
 import toast, { Toaster } from 'react-hot-toast'
 import { supabase } from '../lib/supabaseClient'
+
+// On charge le QRCodeScanner de façon dynamique, en désactivant le rendu côté serveur (ssr: false)
+// C'est la clé pour résoudre les erreurs de build sur Vercel.
+const QRCodeScanner = dynamic(() => import('../components/QRCodeScanner'), {
+  ssr: false,
+  loading: () => <CircularProgress />,
+})
 
 export default function ScanPage() {
   const [scanning, setScanning] = useState(false)
@@ -11,90 +18,72 @@ export default function ScanPage() {
   const [lastQr, setLastQr] = useState('')
   const [errorScan, setErrorScan] = useState('')
 
-  useEffect(() => {
-    if (!scanning) return
+  const handleScanSuccess = (decodedText) => {
+    setScanning(false)
+    handleScan(decodedText)
+  }
 
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      { 
-        fps: 10, 
-        qrbox: 250,
-        // Configuration pour utiliser la caméra arrière sur mobile
-        videoConstraints: {
-          facingMode: { ideal: "environment" } // "environment" = caméra arrière
-        }
-      },
-      false
-    )
-
-    scanner.render(
-      async (decodedText) => {
-        setScanning(false)
-        scanner.clear()
-        handleScan(decodedText)
-      },
-      (error) => {
-        // ignorer les erreurs de scan
-      }
-    )
-
-    return () => scanner.clear().catch(() => {})
-  }, [scanning])
+  const handleScanError = (errorMessage) => {
+    // On peut choisir d'ignorer les erreurs fréquentes de "QR code not found"
+    // ou d'afficher un message plus subtil.
+    // Pour l'instant, on log en console.
+    console.warn(`QR Code scan error: ${errorMessage}`)
+  }
 
   const handleScan = async (decodedText) => {
-    setLoading(true);
-    setLastResult(null);
-    setLastQr(decodedText);
-    setErrorScan('');
+    setLoading(true)
+    setLastResult(null)
+    setLastQr(decodedText)
+    setErrorScan('')
     try {
-      let id = null;
+      let id = null
       // Logique robuste pour extraire l'ID
       if (decodedText.startsWith('cnol2025-')) {
-        const extractedId = decodedText.split('-')[1];
+        const extractedId = decodedText.split('-')[1]
         if (/^\d+$/.test(extractedId)) {
-          id = parseInt(extractedId, 10);
+          id = parseInt(extractedId, 10)
         }
       }
       if (!id && /^\d+$/.test(decodedText)) {
-        id = parseInt(decodedText, 10);
+        id = parseInt(decodedText, 10)
       }
       if (!id && decodedText.includes('id=')) {
         try {
-          const url = new URL(decodedText);
-          const paramId = url.searchParams.get('id');
+          const url = new URL(decodedText)
+          const paramId = url.searchParams.get('id')
           if (paramId && /^\d+$/.test(paramId)) {
-            id = parseInt(paramId, 10);
+            id = parseInt(paramId, 10)
           }
         } catch {}
       }
       if (!id) {
-        playSound('error');
-        setErrorScan('Format du QR code non valide.');
-        throw new Error("Format du QR code non valide.");
+        playSound('error')
+        setErrorScan('Format du QR code non valide.')
+        throw new Error("Format du QR code non valide.")
       }
       // --- Enregistrement dans la table 'entrees' ---
       const { data, error } = await supabase
         .from('entrees')
         .insert({ user_id: id })
         .select('*, inscription(*)')
-        .single();
+        .single()
       if (error) {
-        playSound('error');
-        setErrorScan(error.message || 'Erreur lors de l\'enregistrement.');
-        throw error;
+        playSound('error')
+        setErrorScan(error.message || 'Erreur lors de l\'enregistrement.')
+        throw error
       }
       const scanResult = {
         ...data.inscription,
         scanned_at: data.scanned_at
-      };
-      setLastResult(scanResult);
-      playSound('success');
-      toast.success(`Entrée enregistrée pour ${scanResult.prenom} ${scanResult.nom}`);
+      }
+      setLastResult(scanResult)
+      playSound('success')
+      toast.success(`Entrée enregistrée pour ${scanResult.prenom} ${scanResult.nom}`)
     } catch (err) {
-      toast.error(err.message || 'Erreur lors du scan');
+      toast.error(err.message || 'Erreur lors du scan')
     }
-    setLoading(false);
-  };
+    setLoading(false)
+  }
 
   const playSound = (type) => {
     let audio
@@ -124,8 +113,18 @@ export default function ScanPage() {
           Lancer le scanner
         </Button>
       )}
-      <div id="reader" style={{ marginTop: 20 }} />
-      {lastResult && (
+      {scanning && (
+        <Box sx={{ mt: 2, maxWidth: '500px', mx: 'auto' }}>
+          <QRCodeScanner
+            onScanSuccess={handleScanSuccess}
+            onScanError={handleScanError}
+          />
+          <Button sx={{ mt: 2 }} variant="outlined" color="error" onClick={() => setScanning(false)}>
+            Annuler le Scan
+          </Button>
+        </Box>
+      )}
+      {!scanning && lastResult && (
         <Paper sx={{ mt: 3, p: 2 }}>
           <Typography variant="h6">Dernier badge scanné :</Typography>
           <Typography>{lastResult.prenom} {lastResult.nom}</Typography>
@@ -136,7 +135,7 @@ export default function ScanPage() {
           <Button sx={{ mt: 2 }} variant="outlined" onClick={() => { setScanning(true); setLastResult(null); setErrorScan(''); setLastQr(''); }}>Scanner un autre badge</Button>
         </Paper>
       )}
-      {errorScan && (
+      {!scanning && errorScan && (
         <Paper sx={{ mt: 3, p: 2, background: '#ffeaea' }}>
           <Typography color="error">Erreur : {errorScan}</Typography>
           <Typography variant="body2">QR brut : <code>{lastQr}</code></Typography>

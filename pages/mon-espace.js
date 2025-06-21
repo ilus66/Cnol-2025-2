@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
-import { withIronSessionSsr } from 'iron-session/next';
 import { 
   Box, 
   Button, 
@@ -47,18 +46,11 @@ import {
   Map
 } from '@mui/icons-material';
 
-const sessionOptions = {
-  password: process.env.SESSION_SECRET || 'complex_password_at_least_32_characters_long',
-  cookieName: 'cnol-session',
-  cookieOptions: {
-    secure: process.env.NODE_ENV === 'production',
-  },
-};
-
-export const getServerSideProps = withIronSessionSsr(async ({ req }) => {
-  const user = req.session.user;
+export const getServerSideProps = async ({ req }) => {
+  // Vérifier si l'utilisateur est connecté via la session
+  const sessionCookie = req.cookies['cnol-session'];
   
-  if (!user || !user.id) {
+  if (!sessionCookie) {
     return {
       redirect: {
         destination: '/identification',
@@ -68,6 +60,19 @@ export const getServerSideProps = withIronSessionSsr(async ({ req }) => {
   }
 
   try {
+    // Décoder la session (iron-session stocke les données encodées)
+    const sessionData = JSON.parse(decodeURIComponent(sessionCookie));
+    const user = sessionData.user || sessionData;
+    
+    if (!user || !user.id) {
+      return {
+        redirect: {
+          destination: '/identification',
+          permanent: false,
+        },
+      };
+    }
+
     const { data: userData, error } = await supabase
       .from('inscription')
       .select(`
@@ -107,7 +112,7 @@ export const getServerSideProps = withIronSessionSsr(async ({ req }) => {
       },
     };
   }
-}, sessionOptions);
+};
 
 export default function MonEspace({ user }) {
   const router = useRouter();

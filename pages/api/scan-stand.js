@@ -10,13 +10,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Trouver l'id de l'exposant via son badge
-    const { data: exposant, error: findError } = await supabase
+    // 1. Trouver l'id de l'exposant via son badge/ID
+    let exposantQuery = supabase
       .from('inscription')
       .select('id')
-      .eq('identifiant_badge', identifiant_badge)
-      .eq('type_participant', 'Exposant')
-      .single();
+      .eq('participant_type', 'Exposant');
+    
+    const idMatch = identifiant_badge.match(/^cnol2025-(\d+)$/);
+    if (idMatch) {
+      const userId = parseInt(idMatch[1], 10);
+      exposantQuery = exposantQuery.eq('id', userId);
+    } else {
+      exposantQuery = exposantQuery.eq('identifiant_badge', identifiant_badge);
+    }
+
+    const { data: exposant, error: findError } = await exposantQuery.single();
     
     if (findError || !exposant) {
       return res.status(404).json({ message: 'Badge Exposant non trouvé.' });

@@ -32,7 +32,9 @@ export default function IdentificationPage() {
       }
       
       // Rediriger vers la page demandée initialement ou vers mon-espace par défaut
-      router.push(redirect || '/mon-espace')
+      // On utilise window.location.href pour forcer un rechargement complet de la page
+      // et s'assurer que le nouveau cookie de session est bien pris en compte par le serveur.
+      window.location.href = redirect || '/mon-espace';
 
     } catch (err) {
       setLoading(false)

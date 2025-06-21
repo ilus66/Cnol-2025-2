@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   try {
     let query = supabaseAdmin
       .from('inscription')
-      .select('nom, prenom, email, telephone, fonction, ville');
+      .select('nom, prenom, email, telephone, fonction, ville, identifiant_badge');
 
     // Détecter si le code est un ID (cnol2025-XX) ou un identifiant de badge
     const idMatch = badge_code.match(/^cnol2025-(\d+)$/);

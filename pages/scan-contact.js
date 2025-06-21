@@ -78,7 +78,7 @@ export default function ScanContactPage({ user }) {
         .from('contacts_collected')
         .select('id')
         .eq('collector_id', user.id)
-        .eq('scanned_badge_code', decodedText)
+        .eq('scanned_badge_code', scannedUserData.identifiant_badge)
         .single();
       
       if (existingContact) {
@@ -88,7 +88,7 @@ export default function ScanContactPage({ user }) {
 
       const { error: insertError } = await supabase
         .from('contacts_collected')
-        .insert({ collector_id: user.id, scanned_badge_code: decodedText });
+        .insert({ collector_id: user.id, scanned_badge_code: scannedUserData.identifiant_badge });
 
       if (insertError) throw new Error(insertError.message);
 

@@ -6,25 +6,24 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const { identifier } = req.body;
+  const { email, badgeCode } = req.body;
 
-  if (!identifier) {
-    return res.status(400).json({ message: 'Email ou code badge requis.' });
+  if (!email || !badgeCode) {
+    return res.status(400).json({ message: 'L\'email et le code badge sont requis.' });
   }
 
   try {
-    // Tenter de trouver l'utilisateur par email OU par code badge
     const { data: user, error } = await supabase
       .from('inscription')
       .select('id, nom, prenom, email, type_participant, valide, badge_code')
-      .or(`email.eq.${identifier},badge_code.eq.${identifier.toUpperCase()}`)
+      .eq('email', email)
+      .eq('badge_code', badgeCode.toUpperCase())
       .single();
 
     if (error || !user) {
-      return res.status(401).json({ message: 'Identifiants incorrects ou utilisateur non trouvé.' });
+      return res.status(401).json({ message: 'Email ou code badge incorrect.' });
     }
 
-    // Créer un objet de session simple
     const session = {
       id: user.id,
       email: user.email,
@@ -32,7 +31,6 @@ export default async function handler(req, res) {
       valide: user.valide,
     };
 
-    // Sérialiser le cookie de session
     const sessionCookie = cookie.serialize('cnol-session', JSON.stringify(session), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -41,7 +39,6 @@ export default async function handler(req, res) {
       sameSite: 'lax',
     });
 
-    // Envoyer le cookie dans l'en-tête de la réponse
     res.setHeader('Set-Cookie', sessionCookie);
 
     res.status(200).json({ message: 'Connexion réussie', user });

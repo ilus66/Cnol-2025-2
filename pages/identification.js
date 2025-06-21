@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
-import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material'
+import { Box, TextField, Button, Typography, Alert, CircularProgress, Stack } from '@mui/material'
 import Link from 'next/link'
 
 export default function IdentificationPage() {
-  const [identifier, setIdentifier] = useState('')
+  const [email, setEmail] = useState('')
+  const [badgeCode, setBadgeCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -19,7 +20,7 @@ export default function IdentificationPage() {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier }),
+        body: JSON.stringify({ email, badgeCode }),
       })
 
       const data = await response.json()
@@ -46,27 +47,37 @@ export default function IdentificationPage() {
         Identification
       </Typography>
       <Typography variant="body1" sx={{ mb: 3 }} align="center">
-        Accédez à votre espace personnel en utilisant votre email ou votre code badge.
+        Accédez à votre espace en utilisant votre email et votre code badge.
       </Typography>
       <form onSubmit={handleSubmit}>
-        <TextField
-          label="Email ou Numéro du badge"
-          value={identifier}
-          onChange={(e) => setIdentifier(e.target.value)}
-          fullWidth
-          required
-          autoFocus
-          sx={{ mb: 2 }}
-        />
+        <Stack spacing={2}>
+          <TextField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            fullWidth
+            required
+            autoFocus
+          />
+          <TextField
+            label="Numéro du badge"
+            value={badgeCode}
+            onChange={(e) => setBadgeCode(e.target.value.toUpperCase())}
+            fullWidth
+            required
+            inputProps={{ maxLength: 6, style: { textTransform: 'uppercase' } }}
+          />
+        </Stack>
         <Button 
           type="submit" 
           variant="contained" 
           color="primary" 
           fullWidth 
           disabled={loading}
-          sx={{ py: 1.5, mb: 2 }}
+          sx={{ py: 1.5, mt: 3, mb: 2 }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'Se connecter / Accéder'}
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Se connecter'}
         </Button>
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
       </form>

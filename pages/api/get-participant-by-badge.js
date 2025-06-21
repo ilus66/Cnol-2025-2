@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // IMPORTANT: Utilisation du client Supabase avec la clé de service pour contourner RLS
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {

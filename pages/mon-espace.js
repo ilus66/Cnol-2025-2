@@ -1,12 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
-import { Box, Button, Typography, Paper, Stack, Divider, Alert } from '@mui/material';
+import { 
+  Box, 
+  Button, 
+  Typography, 
+  Paper, 
+  Stack, 
+  Divider, 
+  Alert, 
+  Card, 
+  CardContent,
+  Grid,
+  Chip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Switch,
+  FormControlLabel,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Avatar,
+  Badge
+} from '@mui/material';
 import QRCode from 'qrcode.react';
 import Link from 'next/link';
+import {
+  QrCodeScanner,
+  Notifications,
+  NotificationsOff,
+  Person,
+  Event,
+  Hotel,
+  LocationOn,
+  Download,
+  Logout,
+  ContactPhone,
+  School,
+  EmojiEvents,
+  Map
+} from '@mui/icons-material';
 
 export const getServerSideProps = async ({ req }) => {
-  // Vérification simple de l'authentification via cookie
   const sessionCookie = req.cookies['cnol-session'];
   
   if (!sessionCookie) {
@@ -19,7 +59,6 @@ export const getServerSideProps = async ({ req }) => {
   }
 
   try {
-    // Décoder le cookie de session (simplifié)
     const sessionUser = JSON.parse(decodeURIComponent(sessionCookie));
     
     if (!sessionUser?.id) {
@@ -33,7 +72,17 @@ export const getServerSideProps = async ({ req }) => {
 
     const { data: user, error } = await supabase
       .from('inscription')
-      .select('*, reservations_ateliers(*, ateliers(*)), reservations_masterclass(*, masterclasses(*))')
+      .select(`
+        *,
+        reservations_ateliers(
+          *,
+          ateliers(*)
+        ),
+        reservations_masterclass(
+          *,
+          masterclasses(*)
+        )
+      `)
       .eq('id', sessionUser.id)
       .single();
 
@@ -64,59 +113,427 @@ export const getServerSideProps = async ({ req }) => {
 
 export default function MonEspace({ user }) {
   const router = useRouter();
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannedCode, setScannedCode] = useState('');
+  const [contacts, setContacts] = useState([]);
+  const [settings, setSettings] = useState({});
+
+  useEffect(() => {
+    // Vérifier les permissions de notifications
+    if ('Notification' in window) {
+      setNotificationsEnabled(Notification.permission === 'granted');
+    }
+
+    // Charger les paramètres
+    const fetchSettings = async () => {
+      const { data } = await supabase.from('settings').select('*').single();
+      if (data) setSettings(data);
+    };
+    fetchSettings();
+
+    // Charger les contacts collectés
+    const fetchContacts = async () => {
+      const { data } = await supabase
+        .from('contacts_collected')
+        .select('*')
+        .eq('collector_id', user.id);
+      if (data) setContacts(data);
+    };
+    fetchContacts();
+  }, [user.id]);
 
   const handleLogout = async () => {
     await fetch('/api/logout', { method: 'POST' });
     router.push('/identification');
   };
 
+  const handleNotificationToggle = async () => {
+    if (!('Notification' in window)) {
+      alert('Les notifications ne sont pas supportées par votre navigateur');
+      return;
+    }
+
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      setNotificationsEnabled(permission === 'granted');
+    } else if (Notification.permission === 'granted') {
+      setNotificationsEnabled(false);
+    } else {
+      alert('Veuillez autoriser les notifications dans les paramètres de votre navigateur');
+    }
+  };
+
+  const handleDownloadBadge = () => {
+    const canvas = document.getElementById('qr-code');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `badge-${user.badge_code}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+  };
+
+  const handleScanBadge = () => {
+    setScannerOpen(true);
+  };
+
+  const handleScanResult = async (result) => {
+    setScannedCode(result);
+    setScannerOpen(false);
+    
+    // Enregistrer le contact
+    try {
+      const { error } = await supabase
+        .from('contacts_collected')
+        .insert({
+          collector_id: user.id,
+          scanned_badge_code: result,
+          scanned_at: new Date().toISOString()
+        });
+      
+      if (!error) {
+        alert('Contact ajouté avec succès !');
+        // Recharger les contacts
+        const { data } = await supabase
+          .from('contacts_collected')
+          .select('*')
+          .eq('collector_id', user.id);
+        if (data) setContacts(data);
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du contact:', error);
+    }
+  };
+
   return (
-    <Box sx={{ p: 2 }}>
-      <Paper sx={{ p: 2 }}>
-        <Stack spacing={2}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h5">
-              Bonjour, {user.prenom}
+    <Box sx={{ p: 2, maxWidth: 1200, mx: 'auto' }}>
+      {/* En-tête avec infos utilisateur */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box>
+            <Typography variant="h4" gutterBottom>
+              Bonjour, {user.prenom} {user.nom}
             </Typography>
-            <Button onClick={handleLogout} variant="outlined" color="secondary" size="small">
-              Se déconnecter
-            </Button>
+            <Typography variant="body1" color="text.secondary">
+              {user.email} • {user.type_participant}
+            </Typography>
+            <Chip 
+              label={user.valide ? "Compte validé" : "En attente de validation"} 
+              color={user.valide ? "success" : "warning"}
+              sx={{ mt: 1 }}
+            />
           </Box>
-
-          <Divider />
-
-          <Typography variant="h6">Votre Badge</Typography>
-          {user.valide ? (
-            <Stack alignItems="center" spacing={1}>
-              <QRCode id="qr-code" value={user.badge_code || user.email} size={150} />
-              <Typography variant="body2" color="text.secondary">
-                Code: {user.badge_code || 'N/A'}
-              </Typography>
-              <Button variant="contained">Télécharger le Badge</Button>
-            </Stack>
-          ) : (
-            <Alert severity="warning">
-              Votre inscription est en attente de validation. Votre badge sera disponible ici une fois votre compte approuvé.
-            </Alert>
-          )}
-
-          <Divider />
-
-          <Typography variant="h6">Hôtels Partenaires</Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            Consultez la liste des hôtels partenaires et préparez votre séjour.
-          </Typography>
-          <Link href="/hotels" passHref>
-            <Button variant="contained" color="primary">Voir les hôtels</Button>
-          </Link>
-
-          <Divider />
-
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 2 }}>
-            D'autres fonctionnalités à venir...
-          </Typography>
-        </Stack>
+          <Button 
+            onClick={handleLogout} 
+            variant="outlined" 
+            color="secondary" 
+            startIcon={<Logout />}
+          >
+            Se déconnecter
+          </Button>
+        </Box>
       </Paper>
+
+      <Grid container spacing={3}>
+        {/* Badge QR Code */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              <QrCodeScanner sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Votre Badge
+            </Typography>
+            {user.valide ? (
+              <Stack alignItems="center" spacing={2}>
+                <QRCode id="qr-code" value={user.badge_code || user.email} size={200} />
+                <Typography variant="body2" color="text.secondary">
+                  Code: {user.badge_code || 'N/A'}
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  startIcon={<Download />}
+                  onClick={handleDownloadBadge}
+                >
+                  Télécharger le Badge
+                </Button>
+              </Stack>
+            ) : (
+              <Alert severity="warning">
+                Votre inscription est en attente de validation. Votre badge sera disponible ici une fois votre compte approuvé.
+              </Alert>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Notifications */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              <Notifications sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Notifications
+            </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={notificationsEnabled}
+                  onChange={handleNotificationToggle}
+                />
+              }
+              label="Activer les notifications push"
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Recevez des notifications importantes sur votre appareil
+            </Typography>
+          </Paper>
+        </Grid>
+
+        {/* Mes Réservations Ateliers */}
+        {user.valide && (
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                <School sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Mes Réservations Ateliers
+              </Typography>
+              {user.reservations_ateliers && user.reservations_ateliers.length > 0 ? (
+                <List>
+                  {user.reservations_ateliers.map((reservation) => (
+                    <ListItem key={reservation.id}>
+                      <ListItemAvatar>
+                        <Avatar>
+                          <Event />
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={reservation.ateliers?.titre}
+                        secondary={`${reservation.ateliers?.date} - ${reservation.ateliers?.heure}`}
+                      />
+                      <Chip 
+                        label={reservation.statut} 
+                        color={reservation.statut === 'confirmé' ? 'success' : 'warning'}
+                        size="small"
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Aucune réservation d'atelier
+                </Typography>
+              )}
+              {settings.ouverture_reservation_atelier && (
+                <Button 
+                  variant="contained" 
+                  fullWidth 
+                  sx={{ mt: 2 }}
+                  href="/reservation-ateliers"
+                >
+                  Réserver un atelier
+                </Button>
+              )}
+            </Paper>
+          </Grid>
+        )}
+
+        {/* Mes Réservations Masterclass */}
+        {user.valide && (
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                <School sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Mes Réservations Masterclass
+              </Typography>
+              {user.reservations_masterclass && user.reservations_masterclass.length > 0 ? (
+                <List>
+                  {user.reservations_masterclass.map((reservation) => (
+                    <ListItem key={reservation.id}>
+                      <ListItemAvatar>
+                        <Avatar>
+                          <Event />
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={reservation.masterclasses?.titre}
+                        secondary={`${reservation.masterclasses?.date} - ${reservation.masterclasses?.heure}`}
+                      />
+                      <Chip 
+                        label={reservation.statut} 
+                        color={reservation.statut === 'confirmé' ? 'success' : 'warning'}
+                        size="small"
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Aucune réservation de masterclass
+                </Typography>
+              )}
+              {settings.ouverture_reservation_masterclass && (
+                <Button 
+                  variant="contained" 
+                  fullWidth 
+                  sx={{ mt: 2 }}
+                  href="/reservation-masterclass"
+                >
+                  Réserver une masterclass
+                </Button>
+              )}
+            </Paper>
+          </Grid>
+        )}
+
+        {/* Scanner Badge */}
+        {user.valide && (
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                <QrCodeScanner sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Scanner un Badge
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Scannez le badge d'un autre participant pour échanger vos coordonnées
+              </Typography>
+              <Button 
+                variant="contained" 
+                fullWidth
+                startIcon={<QrCodeScanner />}
+                onClick={handleScanBadge}
+              >
+                Scanner un badge
+              </Button>
+            </Paper>
+          </Grid>
+        )}
+
+        {/* Contacts Collectés */}
+        {user.valide && (
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                <ContactPhone sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Contacts Collectés
+                <Badge badgeContent={contacts.length} color="primary" sx={{ ml: 1 }}>
+                  <ContactPhone />
+                </Badge>
+              </Typography>
+              {contacts.length > 0 ? (
+                <List>
+                  {contacts.slice(0, 5).map((contact, index) => (
+                    <ListItem key={index}>
+                      <ListItemText
+                        primary={`Badge: ${contact.scanned_badge_code}`}
+                        secondary={new Date(contact.scanned_at).toLocaleDateString()}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Aucun contact collecté
+                </Typography>
+              )}
+            </Paper>
+          </Grid>
+        )}
+
+        {/* Postuler CNOL d'Or */}
+        {user.valide && (
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                <EmojiEvents sx={{ mr: 1, verticalAlign: 'middle' }} />
+                CNOL d'Or 2025
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Postulez pour le prix CNOL d'Or 2025
+              </Typography>
+              <Button 
+                variant="contained" 
+                fullWidth
+                href="/cnol-dor"
+                startIcon={<EmojiEvents />}
+              >
+                Postuler au CNOL d'Or
+              </Button>
+            </Paper>
+          </Grid>
+        )}
+
+        {/* Réserver un Hôtel */}
+        {user.valide && (
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                <Hotel sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Réserver un Hôtel
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Consultez et réservez dans nos hôtels partenaires
+              </Typography>
+              <Button 
+                variant="contained" 
+                fullWidth
+                href="/hotels"
+                startIcon={<Hotel />}
+              >
+                Voir les hôtels partenaires
+              </Button>
+            </Paper>
+          </Grid>
+        )}
+
+        {/* Localisation Événement */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              <LocationOn sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Localisation de l'Événement
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              CNOL 2025 - Rabat, Maroc
+            </Typography>
+            <Box sx={{ height: 300, width: '100%', borderRadius: 2, overflow: 'hidden' }}>
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3323.5!2d-6.8498!3d34.0209!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzTCsDAxJzE1LjIiTiA2wrA1MCc1OS4zIlc!5e0!3m2!1sfr!2sfr!4v1234567890"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Dialog Scanner */}
+      <Dialog open={scannerOpen} onClose={() => setScannerOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Scanner un Badge</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Entrez manuellement le code du badge à scanner :
+          </Typography>
+          <TextField
+            fullWidth
+            label="Code du badge"
+            value={scannedCode}
+            onChange={(e) => setScannedCode(e.target.value)}
+            placeholder="Entrez le code du badge"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setScannerOpen(false)}>Annuler</Button>
+          <Button 
+            onClick={() => handleScanResult(scannedCode)} 
+            variant="contained"
+            disabled={!scannedCode}
+          >
+            Ajouter le contact
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

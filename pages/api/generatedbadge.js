@@ -23,6 +23,13 @@ export default async function handler(req, res) {
     return res.status(404).json({ message: 'Inscrit non trouvé' })
   }
 
+  // Vérifier que l'inscription est validée
+  if (!inscrit.valide) {
+    return res.status(403).json({ 
+      message: 'Accès refusé : Votre inscription doit être validée par l\'administrateur avant de pouvoir télécharger votre badge.' 
+    })
+  }
+
   try {
     // Préparer les données pour le badge
     const userData = {

@@ -294,10 +294,44 @@ export default function MonEspace() {
           </Stack>
           <Typography sx={{ mb: 2 }}>Voici votre espace personnel CNOL 2025.</Typography>
           <Divider sx={{ my: 2 }} />
+          <Typography variant="h6">Informations personnelles</Typography>
+          <Typography>Nom : {user.nom}</Typography>
+          <Typography>Prénom : {user.prenom}</Typography>
+          <Typography>Email : {user.email}</Typography>
+          <Typography>Fonction : {user.fonction}</Typography>
+          <Typography>Ville : {user.ville}</Typography>
+          <Typography>Code badge : {user.identifiant_badge}</Typography>
+          
+          {/* Statut de validation pour tous les utilisateurs */}
+          <Box sx={{ mb: 2, p: 2, bgcolor: user.valide ? '#e8f5e8' : '#fff3cd', borderRadius: 1, border: `1px solid ${user.valide ? '#4caf50' : '#ff9800'}`, mt: 2 }}>
+            <Typography variant="subtitle2" color={user.valide ? 'success.main' : 'warning.main'} sx={{ fontWeight: 'bold' }}>
+              Statut de validation : {user.valide ? '✅ Validé' : '⏳ En attente de validation'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {user.valide 
+                ? 'Votre inscription a été validée par l\'administrateur. Vous avez accès à toutes les fonctionnalités.'
+                : 'Votre inscription est en cours de validation par l\'administrateur. Certaines fonctionnalités peuvent être limitées.'
+              }
+            </Typography>
+          </Box>
+          
+          <Divider sx={{ my: 2 }} />
           <Typography variant="h6">Mon badge</Typography>
-          <Button variant="contained" color="primary" href={`/api/generatedbadge?id=${user.id}`} target="_blank" sx={{ my: 1 }}>
-            Télécharger mon badge PDF
+          <Button 
+            variant="contained" 
+            color="primary" 
+            href={`/api/generatedbadge?id=${user.id}`} 
+            target="_blank" 
+            sx={{ my: 1 }}
+            disabled={!user.valide}
+          >
+            {user.valide ? 'Télécharger mon badge PDF' : 'Badge non disponible (en attente de validation)'}
           </Button>
+          {!user.valide && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
+              Votre badge sera disponible une fois votre inscription validée par l'administrateur.
+            </Typography>
+          )}
           <Divider sx={{ my: 2 }} />
           <Typography variant="h6">Mes réservations ateliers</Typography>
           <List>
@@ -412,9 +446,37 @@ export default function MonEspace() {
             <Box sx={{ mb: 3, p: 2, bgcolor: '#ffe0b2', borderRadius: 2, mt: 3 }}>
               <Typography variant="h5" color="primary">Espace exposant</Typography>
               <Typography sx={{ mb: 1 }}>Bienvenue {user.prenom}, vous êtes exposant au CNOL 2025.</Typography>
-              <Button variant="contained" color="primary" href={`/api/generatedbadge?id=${user.id}`} target="_blank" sx={{ my: 1 }}>
-                Télécharger mon badge exposant (PDF)
+              
+              {/* Statut de validation */}
+              <Box sx={{ mb: 2, p: 2, bgcolor: user.valide ? '#e8f5e8' : '#fff3cd', borderRadius: 1, border: `1px solid ${user.valide ? '#4caf50' : '#ff9800'}` }}>
+                <Typography variant="subtitle2" color={user.valide ? 'success.main' : 'warning.main'} sx={{ fontWeight: 'bold' }}>
+                  Statut de validation : {user.valide ? '✅ Validé' : '⏳ En attente de validation'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {user.valide 
+                    ? 'Votre inscription a été validée par l\'administrateur. Vous pouvez télécharger votre badge.'
+                    : 'Votre inscription est en cours de validation par l\'administrateur. Le badge sera disponible une fois validé.'
+                  }
+                </Typography>
+              </Box>
+
+              <Button 
+                variant="contained" 
+                color="primary" 
+                href={`/api/generatedbadge?id=${user.id}`} 
+                target="_blank" 
+                sx={{ my: 1 }}
+                disabled={!user.valide}
+              >
+                {user.valide ? 'Télécharger mon badge exposant (PDF)' : 'Badge non disponible (en attente de validation)'}
               </Button>
+              
+              {!user.valide && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
+                  Contactez l'administrateur si vous avez des questions concernant votre validation.
+                </Typography>
+              )}
+              
               <Divider sx={{ my: 2 }} />
               <Typography variant="h6">Visiteurs de mon stand</Typography>
               <Button variant="outlined" color="primary" onClick={handleExportVisiteursCSV} sx={{ mr: 1, my: 1 }} disabled={!visiteursStand.length}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
+import { withIronSessionSsr } from 'iron-session/next';
 import { 
   Box, 
   Button, 
@@ -46,10 +47,18 @@ import {
   Map
 } from '@mui/icons-material';
 
-export const getServerSideProps = async ({ req }) => {
-  const sessionCookie = req.cookies['cnol-session'];
+const sessionOptions = {
+  password: process.env.SESSION_SECRET || 'complex_password_at_least_32_characters_long',
+  cookieName: 'cnol-session',
+  cookieOptions: {
+    secure: process.env.NODE_ENV === 'production',
+  },
+};
+
+export const getServerSideProps = withIronSessionSsr(async ({ req }) => {
+  const user = req.session.user;
   
-  if (!sessionCookie) {
+  if (!user || !user.id) {
     return {
       redirect: {
         destination: '/identification',
@@ -59,18 +68,7 @@ export const getServerSideProps = async ({ req }) => {
   }
 
   try {
-    const sessionUser = JSON.parse(decodeURIComponent(sessionCookie));
-    
-    if (!sessionUser?.id) {
-      return {
-        redirect: {
-          destination: '/identification',
-          permanent: false,
-        },
-      };
-    }
-
-    const { data: user, error } = await supabase
+    const { data: userData, error } = await supabase
       .from('inscription')
       .select(`
         *,
@@ -83,10 +81,10 @@ export const getServerSideProps = async ({ req }) => {
           masterclasses(*)
         )
       `)
-      .eq('id', sessionUser.id)
+      .eq('id', user.id)
       .single();
 
-    if (error || !user) {
+    if (error || !userData) {
       return {
         redirect: {
           destination: '/identification?error=user_not_found',
@@ -97,7 +95,7 @@ export const getServerSideProps = async ({ req }) => {
 
     return {
       props: {
-        user,
+        user: userData,
       },
     };
   } catch (error) {
@@ -109,7 +107,7 @@ export const getServerSideProps = async ({ req }) => {
       },
     };
   }
-};
+}, sessionOptions);
 
 export default function MonEspace({ user }) {
   const router = useRouter();
@@ -165,6 +163,12 @@ export default function MonEspace({ user }) {
   };
 
   const handleDownloadBadge = () => {
+    // Vérifier que l'utilisateur est validé avant de permettre le téléchargement
+    if (!user.valide) {
+      alert('Votre inscription doit être validée par l\'administrateur avant de pouvoir télécharger votre badge.');
+      return;
+    }
+    
     const canvas = document.getElementById('qr-code');
     if (canvas) {
       const link = document.createElement('a');
@@ -216,7 +220,7 @@ export default function MonEspace({ user }) {
               Bonjour, {user.prenom} {user.nom}
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              {user.email} • {user.type}
+              {user.email} • {user.participant_type}
             </Typography>
             <Chip 
               label={user.valide ? "Compte validé" : "En attente de validation"} 

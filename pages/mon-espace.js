@@ -330,25 +330,35 @@ export default function MonEspace({ user }) {
           </Paper>
         </Grid>
 
-        {/* Notifications */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
+        {/* Section Notifications */}
+        <Grid item xs={12}>
+          <Paper elevation={2} sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              <Notifications sx={{ mr: 1, verticalAlign: 'middle' }} />
               Notifications
             </Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={notificationsEnabled}
-                  onChange={handleNotificationToggle}
+            <List>
+              <ListItem>
+                <ListItemAvatar>
+                  <Notifications />
+                </ListItemAvatar>
+                <FormControlLabel
+                  sx={{ flexGrow: 1 }}
+                  control={
+                    <Switch
+                      checked={notificationsEnabled}
+                      onChange={handleNotificationToggle}
+                      name="notifications"
+                      color="primary"
+                    />
+                  }
+                  label="Activer les notifications push"
+                  labelPlacement="start"
                 />
-              }
-              label="Activer les notifications push"
-            />
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Recevez des notifications importantes sur votre appareil
-            </Typography>
+              </ListItem>
+              <Typography variant="body2" color="textSecondary" sx={{ pl: 7, mt: -1 }}>
+                Recevez des notifications importantes sur votre appareil
+              </Typography>
+            </List>
           </Paper>
         </Grid>
 

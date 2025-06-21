@@ -74,17 +74,8 @@ export const getServerSideProps = async ({ req }) => {
 
     const { data: userData, error } = await supabase
       .from('inscription')
-      .select(`
-        *,
-        reservations_ateliers(
-          *,
-          ateliers(*)
-        ),
-        reservations_masterclass(
-          *,
-          masterclasses(*)
-        )
-      `)
+      // On simplifie la requête pour le débogage. On ne charge que les infos de l'utilisateur.
+      .select('*')
       .eq('id', sessionData.id)
       .single();
 

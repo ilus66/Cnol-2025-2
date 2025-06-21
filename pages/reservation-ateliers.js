@@ -2,11 +2,43 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
 import {
-  Box, Typography, Button, CircularProgress, List, ListItem, ListItemText, TextField
+  Box, Typography, Button, CircularProgress, List, ListItem, ListItemText,
+  Alert, Paper, Chip, Divider
 } from '@mui/material'
-import toast from 'react-hot-toast'
+import toast, { Toaster } from 'react-hot-toast'
 
-export default function ReservationAteliers() {
+export const getServerSideProps = async ({ req }) => {
+  const sessionCookie = req.cookies['cnol-session'];
+  if (!sessionCookie) {
+    return { redirect: { destination: '/identification', permanent: false } };
+  }
+  
+  try {
+    const sessionData = JSON.parse(decodeURIComponent(sessionCookie));
+    const { data: user, error } = await supabase
+      .from('inscription')
+      .select('*')
+      .eq('id', sessionData.id)
+      .single();
+
+    if (error || !user) {
+      return { redirect: { destination: '/identification?error=user_not_found', permanent: false } };
+    }
+    
+    // Vérifier si l'utilisateur a le droit de réserver (Opticien ou Ophtalmologue)
+    if (user.fonction !== 'Opticien' && user.fonction !== 'Ophtalmologue') {
+        return {
+            redirect: { destination: '/mon-espace?error=access_denied', permanent: false },
+        };
+    }
+
+    return { props: { user } };
+  } catch (error) {
+    return { redirect: { destination: '/identification', permanent: false } };
+  }
+};
+
+export default function ReservationAteliers({ user }) {
   const [ateliers, setAteliers] = useState([])
   const [reservations, setReservations] = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,30 +49,6 @@ export default function ReservationAteliers() {
   const [loadingSettings, setLoadingSettings] = useState(true)
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
-
-  useEffect(() => {
-    // Vérification du code badge
-    let badge = router.query.badge;
-    if (!badge && typeof window !== 'undefined') {
-      badge = localStorage.getItem('badge_code');
-    }
-    if (!badge) {
-      router.replace('/identification');
-      return;
-    }
-    // Stocker le code badge pour les accès suivants
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('badge_code', badge);
-    }
-    // Pré-remplir le formulaire avec les infos du badge
-    const fetchUser = async () => {
-      const { data } = await supabase.from('inscription').select('*').eq('identifiant_badge', badge).single();
-      if (data) {
-        setForm(f => ({ ...f, nom: data.nom, prenom: data.prenom, email: data.email, telephone: data.telephone }));
-      }
-    };
-    fetchUser();
-  }, [router.query.badge]);
 
   useEffect(() => {
     fetchData()
@@ -70,41 +78,30 @@ export default function ReservationAteliers() {
     setLoading(false)
   }
 
-  const reserver = async (atelier) => {
-    setForm(f => ({ ...f, atelier_id: atelier.id }))
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitLoading(true)
-    setErrorMsg('');
-    const { nom, prenom, email, telephone, atelier_id } = form
-    if (!nom || !prenom || !email || !telephone || !atelier_id) {
-      toast.error('Tous les champs sont obligatoires')
-      setSubmitLoading(false)
-      return
-    }
-    const res = await fetch('/api/reservation-atelier', {
+  const handleReserver = async (atelierId) => {
+    const toastId = toast.loading('Réservation en cours...');
+    
+    const response = await fetch('/api/reservation-atelier', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nom, prenom, email, telephone, atelier_id, type: 'externe' })
-    })
-    setSubmitLoading(false)
-    if (res.ok) {
-      const data = await res.json()
-      toast.success(data.message || 'Réservation confirmée !')
-      setForm({ nom: '', prenom: '', email: '', telephone: '', atelier_id: '' })
-      setErrorMsg('');
+      body: JSON.stringify({
+        atelier_id: atelierId,
+        nom: user.nom,
+        prenom: user.prenom,
+        email: user.email,
+        telephone: user.telephone,
+        type: 'interne' // Réservation pour utilisateur connecté
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      toast.success(data.message || 'Réservation confirmée !', { id: toastId });
+      fetchData(); // Recharger les données pour mettre à jour l'UI
     } else {
-      let errorMsg = 'Erreur lors de la réservation'
-      try {
-        const data = await res.json()
-        if (data && data.message) errorMsg = data.message
-      } catch (e) {}
-      setErrorMsg(errorMsg);
-      toast.error(errorMsg)
+      toast.error(data.message || 'Erreur lors de la réservation.', { id: toastId });
     }
-  }
+  };
 
   if (loadingSettings) return <CircularProgress />
   if (!settings.ouverture_reservation_atelier) return <Box sx={{ p: 4 }}><Typography variant="h5">Les réservations d'ateliers ne sont pas encore ouvertes.</Typography></Box>
@@ -112,41 +109,46 @@ export default function ReservationAteliers() {
   if (loading) return <CircularProgress />
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h5" gutterBottom>Réserver un atelier</Typography>
+    <Box sx={{ p: 2, maxWidth: 900, mx: 'auto' }}>
+      <Toaster position="top-right" />
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h4" gutterBottom>Réserver un Atelier</Typography>
+        <Typography variant="body1" color="text.secondary">
+            Bonjour {user.prenom}, sélectionnez un atelier pour réserver votre place. Les places sont limitées.
+        </Typography>
+      </Paper>
       <List>
-        {ateliers.map((a) => (
-          <ListItem key={a.id} divider>
-            <ListItemText
-              primary={`${a.titre} — ${a.intervenant}`}
-              secondary={`${new Date(a.date_heure).toLocaleString()} — Salle ${a.salle}`}
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              disabled={placesExternes[a.id] >= 30}
-              onClick={() => reserver(a)}
-            >
-              {placesExternes[a.id] >= 30 ? 'Complet' : 'Réserver'}
-            </Button>
-          </ListItem>
-        ))}
+        {ateliers.map((atelier) => {
+          const isReserved = reservations.includes(atelier.id);
+          const placesPrises = atelier.reservations_ateliers[0]?.count || 0;
+          const isFull = placesPrises >= atelier.capacite;
+
+          return (
+            <ListItem key={atelier.id} divider sx={{ opacity: (isFull && !isReserved) ? 0.6 : 1 }}>
+              <ListItemText
+                primary={`${atelier.titre} — ${atelier.intervenant}`}
+                secondary={
+                  <>
+                    <Typography component="span" variant="body2" color="text.primary">
+                      {new Date(atelier.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
+                    </Typography>
+                    <br />
+                    Salle: {atelier.salle} | Places restantes: {atelier.capacite - placesPrises}
+                  </>
+                }
+              />
+              <Button
+                variant="contained"
+                onClick={() => handleReserver(atelier.id)}
+                disabled={isFull || isReserved}
+                color={isReserved ? "success" : "primary"}
+              >
+                {isReserved ? 'Déjà Réservé' : (isFull ? 'Complet' : 'Réserver')}
+              </Button>
+            </ListItem>
+          );
+        })}
       </List>
-      {form.atelier_id && (
-        <Box sx={{ mt: 4, p: 2, border: '1px solid #ccc', borderRadius: 2, maxWidth: 400 }}>
-          <Typography variant="h6">Réservation pour l'atelier sélectionné</Typography>
-          <form onSubmit={handleSubmit}>
-            <TextField label="Nom" value={form.nom} onChange={e => setForm(f => ({ ...f, nom: e.target.value }))} fullWidth sx={{ mb: 2 }} />
-            <TextField label="Prénom" value={form.prenom} onChange={e => setForm(f => ({ ...f, prenom: e.target.value }))} fullWidth sx={{ mb: 2 }} />
-            <TextField label="Email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} fullWidth sx={{ mb: 2 }} />
-            <TextField label="Téléphone" value={form.telephone} onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))} fullWidth sx={{ mb: 2 }} />
-            <Button type="submit" variant="contained" color="success" disabled={submitLoading} fullWidth>
-              {submitLoading ? 'Réservation…' : 'Valider la réservation'}
-            </Button>
-          </form>
-          {errorMsg && <Typography color="error" sx={{ mt: 2 }}>{errorMsg}</Typography>}
-        </Box>
-      )}
     </Box>
   )
 }

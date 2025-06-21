@@ -177,12 +177,6 @@ export default function MonEspace({ user }) {
       return outputArray;
     }
 
-    if (Notification.permission === 'granted') {
-      // Se désabonner (logique à implémenter si nécessaire)
-      alert("Notifications déjà activées. Pour les désactiver, gérez les permissions dans les paramètres de votre navigateur.");
-      return;
-    }
-
     if (Notification.permission === 'denied') {
       alert("Vous avez bloqué les notifications. Veuillez les autoriser dans les paramètres de votre navigateur.");
       return;

@@ -157,7 +157,7 @@ export default function MonEspace({ user }) {
     }
   };
 
-  const handleDownloadBadge = () => {
+  const handleDownloadQRCode = () => {
     // Vérifier que l'utilisateur est validé avant de permettre le téléchargement
     if (!user.valide) {
       alert('Votre inscription doit être validée par l\'administrateur avant de pouvoir télécharger votre badge.');
@@ -167,7 +167,7 @@ export default function MonEspace({ user }) {
     const canvas = document.getElementById('qr-code');
     if (canvas) {
       const link = document.createElement('a');
-      link.download = `badge-${user.identifiant_badge}.png`;
+      link.download = `qrcode-cnol-${user.identifiant_badge}.png`;
       link.href = canvas.toDataURL();
       link.click();
     }
@@ -251,9 +251,9 @@ export default function MonEspace({ user }) {
                 <Button 
                   variant="contained" 
                   startIcon={<Download />}
-                  onClick={handleDownloadBadge}
+                  onClick={handleDownloadQRCode}
                 >
-                  Télécharger le Badge
+                  Télécharger mon QR Code
                 </Button>
               </Stack>
             ) : (

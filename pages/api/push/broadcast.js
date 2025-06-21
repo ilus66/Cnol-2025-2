@@ -1,9 +1,22 @@
-import { supabase } from '../../../lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 
 // Assurez-vous que les clés VAPID sont bien configurées dans vos variables d'environnement
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+
+// Création d'un client Supabase avec la clé de service pour avoir les droits admin
+// et contourner les Row Level Security (RLS). Indispensable pour une API serveur.
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        // Le client admin n'a pas besoin de maintenir une session.
+        persistSession: false,
+      },
+    }
+);
 
 // Configuration de web-push
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
@@ -33,8 +46,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Récupérer TOUS les abonnements push
-    const { data: subs, error } = await supabase
+    // Récupérer TOUS les abonnements push en utilisant le client admin
+    const { data: subs, error } = await supabaseAdmin
       .from('push_subscriptions')
       .select('*');
       

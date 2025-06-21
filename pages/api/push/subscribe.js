@@ -1,4 +1,16 @@
-import { supabase } from "../../../lib/supabaseClient";
+import { createClient } from '@supabase/supabase-js';
+
+// Création d'un client Supabase avec la clé de service pour avoir les droits admin
+// et contourner les Row Level Security (RLS).
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      persistSession: false,
+    },
+  }
+);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -17,7 +29,7 @@ export default async function handler(req, res) {
 
   try {
     // Vérifier si l'abonnement existe déjà pour cet utilisateur
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from("push_subscriptions")
       .select("id")
       .eq("user_id", userId)
@@ -32,7 +44,7 @@ export default async function handler(req, res) {
 
     if (existing) {
       // Mettre à jour l'abonnement existant
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from("push_subscriptions")
         .update(subscriptionData)
         .eq("id", existing.id);
@@ -48,7 +60,7 @@ export default async function handler(req, res) {
       });
     } else {
       // Créer un nouvel abonnement
-      const { error: insertError } = await supabase
+      const { error: insertError } = await supabaseAdmin
         .from("push_subscriptions")
         .insert({
           user_id: userId,

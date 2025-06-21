@@ -1,17 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
   "env": {
     "SMTP_HOST": "mail.cnol.ma",
     "SMTP_PORT": "465",
     "SMTP_USER": "inscription@cnol.ma",
     "SMTP_PASS": "BLh9Qhnlo2CH",
-    "SMTP_FROM": "inscription@cnol.ma"
+    "SMTP_FROM": "inscription@cnol.ma",
+    "NEXT_PUBLIC_VAPID_PUBLIC_KEY": "BAwryJb8TeKPj1CpQfnHwxw6TMphVQF8JQj1gAFcZ222rDdSJDK5yrmz3gZSUYsijS_rq_m7ZURjCzBoqxPRpYQ",
+    "VAPID_PRIVATE_KEY": "JUQy6W2AxBSobQo4YVE7ethTyrWtirGpU2JdrwdXxzU"
   },
   "headers": [
     {

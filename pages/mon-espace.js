@@ -146,18 +146,61 @@ export default function MonEspace({ user }) {
   };
 
   const handleNotificationToggle = async () => {
-    if (!('Notification' in window)) {
-      alert('Les notifications ne sont pas supportées par votre navigateur');
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      alert("Les notifications ne sont pas supportées par votre navigateur.");
       return;
     }
 
-    if (Notification.permission === 'default') {
-      const permission = await Notification.requestPermission();
-      setNotificationsEnabled(permission === 'granted');
-    } else if (Notification.permission === 'granted') {
+    if (Notification.permission === 'granted') {
+      // Se désabonner (logique à implémenter si nécessaire, pour l'instant on désactive juste)
       setNotificationsEnabled(false);
-    } else {
-      alert('Veuillez autoriser les notifications dans les paramètres de votre navigateur');
+      alert("Notifications désactivées. Pour réactiver, veuillez gérer les permissions de votre navigateur.");
+      // Idéalement, il faudrait aussi appeler une API pour supprimer l'abonnement de la BDD.
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      alert("Vous avez bloqué les notifications. Veuillez les autoriser dans les paramètres de votre navigateur.");
+      return;
+    }
+
+    // Demander la permission
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      alert("Permission de notification non accordée.");
+      setNotificationsEnabled(false);
+      return;
+    }
+    
+    setNotificationsEnabled(true);
+    
+    try {
+      // Enregistrer le Service Worker
+      const sw = await navigator.serviceWorker.ready;
+      
+      // S'abonner aux notifications push
+      const subscription = await sw.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      });
+
+      // Envoyer l'abonnement au serveur
+      const response = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription, userId: user.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Échec de l\'abonnement côté serveur.');
+      }
+
+      alert('Vous êtes maintenant abonné aux notifications !');
+
+    } catch (error) {
+      console.error("Erreur lors de l'abonnement aux notifications:", error);
+      alert("Une erreur est survenue lors de l'abonnement aux notifications.");
+      setNotificationsEnabled(false);
     }
   };
 

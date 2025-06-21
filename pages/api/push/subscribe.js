@@ -5,28 +5,36 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Méthode non autorisée" });
   }
 
-  const { user_id, endpoint, p256dh, auth } = req.body;
+  // Accepter soit un objet subscription, soit des champs séparés
+  const { subscription, userId } = req.body;
+  const sub = subscription || req.body;
   
-  if (!user_id || !endpoint || !p256dh || !auth) {
+  if (!userId || !sub.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) {
     return res.status(400).json({ 
-      message: "Paramètres manquants: user_id, endpoint, p256dh, auth requis" 
+      message: "Paramètres manquants: userId et subscription (endpoint, keys.p256dh, keys.auth) sont requis" 
     });
   }
 
   try {
-    // Vérifier si l'abonnement existe déjà
+    // Vérifier si l'abonnement existe déjà pour cet utilisateur
     const { data: existing } = await supabase
       .from("push_subscriptions")
       .select("id")
-      .eq("user_id", user_id)
-      .eq("endpoint", endpoint)
+      .eq("user_id", userId)
+      .eq("endpoint", sub.endpoint)
       .single();
+
+    const subscriptionData = {
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+      updated_at: new Date().toISOString(),
+    };
 
     if (existing) {
       // Mettre à jour l'abonnement existant
       const { error: updateError } = await supabase
         .from("push_subscriptions")
-        .update({ p256dh, auth, updated_at: new Date().toISOString() })
+        .update(subscriptionData)
         .eq("id", existing.id);
 
       if (updateError) {
@@ -43,12 +51,10 @@ export default async function handler(req, res) {
       const { error: insertError } = await supabase
         .from("push_subscriptions")
         .insert({
-          user_id,
-          endpoint,
-          p256dh,
-          auth,
+          user_id: userId,
+          endpoint: sub.endpoint,
+          ...subscriptionData,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
         });
 
       if (insertError) {

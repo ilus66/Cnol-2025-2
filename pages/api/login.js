@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   try {
     const { data: user, error } = await supabase
       .from('inscription')
-      .select('id, nom, prenom, email, type, valide, identifiant_badge')
+      .select('id, nom, prenom, email, participant_type, valide, identifiant_badge')
       .eq('email', email.trim())
       .eq('identifiant_badge', badgeCode.trim().toUpperCase())
       .single();

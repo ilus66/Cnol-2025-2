@@ -31,7 +31,14 @@ export default function MonEspace() {
 
     const scanner = new Html5QrcodeScanner(
       "reader-contact",
-      { fps: 10, qrbox: 250 },
+      { 
+        fps: 10, 
+        qrbox: 250,
+        // Configuration pour utiliser la caméra arrière sur mobile
+        videoConstraints: {
+          facingMode: { ideal: "environment" } // "environment" = caméra arrière
+        }
+      },
       false
     );
 
@@ -227,8 +234,14 @@ export default function MonEspace() {
   // Export visiteurs stand CSV
   const handleExportVisiteursCSV = () => {
     if (!visiteursStand.length) return;
-    const header = ['Prénom', 'Nom', 'Email', 'Téléphone', 'Date/Heure scan'];
-    const rows = visiteursStand.map(v => [v.visiteur?.prenom, v.visiteur?.nom, v.visiteur?.email, v.visiteur?.telephone, v.created_at && new Date(v.created_at).toLocaleString()]);
+    const header = ['Prénom', 'Nom', 'Email', 'Téléphone', 'Date visite'];
+    const rows = visiteursStand.map(v => [
+      v.visiteur?.prenom || '',
+      v.visiteur?.nom || '',
+      v.visiteur?.email || '',
+      v.visiteur?.telephone || '',
+      v.created_at ? new Date(v.created_at).toLocaleString() : ''
+    ]);
     const csvContent = [header, ...rows].map(row => row.map(val => `"${val || ''}"`).join(',')).join('\n');
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -244,7 +257,7 @@ export default function MonEspace() {
   // Export visiteurs stand vCard
   const handleExportVisiteursVCard = () => {
     if (!visiteursStand.length) return;
-    const vcardLines = visiteursStand.map(v => `BEGIN:VCARD\nVERSION:3.0\nN:${v.visiteur?.nom};${v.visiteur?.prenom};;;\nFN:${v.visiteur?.prenom} ${v.visiteur?.nom}\nEMAIL:${v.visiteur?.email || ''}\nTEL:${v.visiteur?.telephone || ''}\nNOTE:Visite stand CNOL le ${v.created_at && new Date(v.created_at).toLocaleString()}\nEND:VCARD`).join('\n');
+    const vcardLines = visiteursStand.map(v => `BEGIN:VCARD\nVERSION:3.0\nN:${v.visiteur?.nom || ''};${v.visiteur?.prenom || ''};;;\nFN:${v.visiteur?.prenom || ''} ${v.visiteur?.nom || ''}\nEMAIL:${v.visiteur?.email || ''}\nTEL:${v.visiteur?.telephone || ''}\nEND:VCARD`).join('\n');
     const blob = new Blob([vcardLines], { type: 'text/vcard;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -256,8 +269,14 @@ export default function MonEspace() {
     URL.revokeObjectURL(url);
   };
 
-  // --- NOUVEAU : Gérer la réservation en 1-clic ---
+  // Fonction de réservation avec validation
   const handleReserve = async (type, eventId) => {
+    // Vérifier que l'utilisateur est validé
+    if (!user.valide) {
+      setReservationMessage('Erreur : Vous devez être validé par l\'administrateur pour effectuer des réservations.');
+      return;
+    }
+    
     setReservationMessage('Réservation en cours...');
     try {
       const endpoint = type === 'atelier' ? '/api/reservation-atelier' : '/api/reservation-masterclass';
@@ -525,9 +544,9 @@ export default function MonEspace() {
                   variant="contained" 
                   size="small" 
                   onClick={() => handleReserve('atelier', a.id)}
-                  disabled={(a.places_internes_restantes + a.places_externes_restantes) === 0}
+                  disabled={(a.places_internes_restantes + a.places_externes_restantes) === 0 || !user.valide}
                 >
-                  Réserver
+                  {user.valide ? 'Réserver' : 'Non validé'}
                 </Button>
               </ListItem>
             ))}
@@ -554,9 +573,9 @@ export default function MonEspace() {
                   variant="contained" 
                   size="small" 
                   onClick={() => handleReserve('masterclass', m.id)}
-                  disabled={(m.places_internes_restantes + m.places_externes_restantes) === 0}
+                  disabled={(m.places_internes_restantes + m.places_externes_restantes) === 0 || !user.valide}
                 >
-                  Réserver
+                  {user.valide ? 'Réserver' : 'Non validé'}
                 </Button>
               </ListItem>
             ))}

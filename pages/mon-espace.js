@@ -83,8 +83,12 @@ export const getServerSideProps = async ({ req }) => {
 
     const { data: userData, error } = await supabase
       .from('inscription')
-      // On simplifie la requête pour le débogage. On ne charge que les infos de l'utilisateur.
-      .select('*')
+      // On charge l'utilisateur et ses réservations associées en une seule requête
+      .select(`
+        *,
+        reservations_ateliers(*, ateliers(*)),
+        reservations_masterclass(*, masterclasses:masterclass(*))
+      `)
       .eq('id', sessionData.id)
       .single();
 

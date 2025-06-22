@@ -53,18 +53,30 @@ export default function ReservationAteliers({ user }) {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: ateliersData } = await supabase
+
+    const { data: ateliersData, error: ateliersError } = await supabase
       .from('ateliers')
-      .select('*, reservations_ateliers(count)')
+      .select(`
+        *,
+        reservations_ateliers ( statut )
+      `)
       .order('date_heure');
 
+    if (ateliersData) {
+        const transformedAteliers = ateliersData.map(atelier => {
+            const placesPrises = atelier.reservations_ateliers.filter(r => r.statut === 'confirmé').length;
+            return { ...atelier, placesPrises };
+        });
+        setAteliers(transformedAteliers);
+    }
+    
     const { data: reservationsData } = await supabase
       .from('reservations_ateliers')
       .select('atelier_id, statut')
       .eq('email', user.email);
       
-    if (ateliersData) setAteliers(ateliersData);
     if (reservationsData) setReservations(reservationsData);
+
     setLoading(false);
   };
 
@@ -114,8 +126,9 @@ export default function ReservationAteliers({ user }) {
       <List>
         {ateliers.map((atelier) => {
           const reservation = reservations.find(r => r.atelier_id === atelier.id);
-          const placesPrises = atelier.reservations_ateliers[0]?.count || 0;
-          const isFull = placesPrises >= atelier.capacite;
+          const placesPrises = atelier.placesPrises || 0;
+          const placesRestantes = (atelier.places || 0) - placesPrises;
+          const isFull = placesRestantes <= 0;
 
           let buttonText = 'Réserver';
           let buttonColor = 'primary';
@@ -145,7 +158,7 @@ export default function ReservationAteliers({ user }) {
                       {new Date(atelier.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
                     </Typography>
                     <br />
-                    Salle: {atelier.salle} | Places restantes: {atelier.capacite - placesPrises}
+                    Salle: {atelier.salle} | Places restantes: {placesRestantes}
                   </>
                 }
               />

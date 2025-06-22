@@ -1,3 +1,20 @@
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  List,
+  ListItem,
+  IconButton,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Paper,
+  Stack,
+  CircularProgress
+} from '@mui/material'
 <Dialog open={!!openListMasterclassId} onClose={() => setOpenListMasterclassId(null)} maxWidth="md" fullWidth>
   <DialogTitle>Liste des inscrits</DialogTitle>
   <DialogContent>

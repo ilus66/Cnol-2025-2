@@ -27,6 +27,7 @@
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^2.5.1",
     "next": "14.1.0",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.9",
     "pdf-lib": "^1.17.1",
     "pdfkit": "^0.14.0",

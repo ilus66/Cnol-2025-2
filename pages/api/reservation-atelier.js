@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const sessionData = JSON.parse(decodeURIComponent(sessionCookie));
     const { data: userData, error: userError } = await supabaseAdmin
       .from('inscription')
-      .select('id, valide, fonction')
+      .select('id, nom, prenom, email, valide, fonction')
       .eq('id', sessionData.id)
       .single();
 

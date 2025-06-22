@@ -76,14 +76,10 @@ export default function ReservationMasterclass({ user }) {
     const response = await fetch('/api/reservation-masterclass', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        masterclass_id: masterclassId,
-        nom: user.nom,
-        prenom: user.prenom,
-        email: user.email,
-        telephone: user.telephone,
-        type: 'interne'
-      })
+          body: JSON.stringify({
+      userId: user.id,
+      masterclassId: masterclassId
+    })
     });
 
     const data = await response.json();

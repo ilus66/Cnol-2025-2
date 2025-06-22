@@ -28,6 +28,20 @@ export default async function handler(req, res) {
 
     if (fetchError) throw fetchError
     if (!reservation) throw new Error('Réservation non trouvée.')
+    
+    // Correctif : si la relation n'a pas fonctionné, on la récupère manuellement
+    if (!reservation.ateliers) {
+      const { data: atelierData, error: atelierError } = await supabaseAdmin
+        .from('ateliers')
+        .select('*')
+        .eq('id', reservation.atelier_id)
+        .single()
+      if (atelierError || !atelierData) {
+        throw new Error(`Atelier associé non trouvé pour la réservation ${id}`)
+      }
+      reservation.ateliers = atelierData // attacher manuellement
+    }
+
     if (reservation.statut !== 'confirmé') {
       return res.status(403).json({ message: 'La réservation n\'est pas confirmée.' })
     }

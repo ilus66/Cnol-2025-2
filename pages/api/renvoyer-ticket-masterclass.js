@@ -28,6 +28,20 @@ export default async function handler(req, res) {
 
     if (fetchError) throw fetchError;
     if (!reservation) throw new Error('Réservation non trouvée.');
+
+    // Correctif : si la relation n'a pas fonctionné, on la récupère manuellement
+    if (!reservation.masterclass) {
+      const { data: masterclassData, error: masterclassError } = await supabaseAdmin
+        .from('masterclass')
+        .select('*')
+        .eq('id', reservation.masterclass_id)
+        .single();
+      if (masterclassError || !masterclassData) {
+        throw new Error(`Masterclass associée non trouvée pour la réservation ${id}`);
+      }
+      reservation.masterclass = masterclassData; // attacher manuellement
+    }
+
     if (reservation.statut !== 'confirmé') {
       return res.status(403).json({ message: 'La réservation n\'est pas confirmée.' });
     }

@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
-import { supabase } from '../lib/supabaseClient'
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import {
   Box, Typography, Button, CircularProgress, List, ListItem, ListItemText,
-  Alert, Paper, Chip, Divider
-} from '@mui/material'
-import toast, { Toaster } from 'react-hot-toast'
+  Alert, Paper
+} from '@mui/material';
+import toast, { Toaster } from 'react-hot-toast';
 
 export const getServerSideProps = async ({ req }) => {
   const sessionCookie = req.cookies['cnol-session'];
@@ -25,7 +24,6 @@ export const getServerSideProps = async ({ req }) => {
       return { redirect: { destination: '/identification?error=user_not_found', permanent: false } };
     }
     
-    // Vérifier si l'utilisateur a le droit de réserver (Opticien ou Ophtalmologue)
     if (user.fonction !== 'Opticien' && user.fonction !== 'Ophtalmologue') {
         return {
             redirect: { destination: '/mon-espace?error=access_denied', permanent: false },
@@ -39,44 +37,36 @@ export const getServerSideProps = async ({ req }) => {
 };
 
 export default function ReservationAteliers({ user }) {
-  const [ateliers, setAteliers] = useState([])
-  const [reservations, setReservations] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [placesExternes, setPlacesExternes] = useState({})
-  const [form, setForm] = useState({ nom: '', prenom: '', email: '', telephone: '', atelier_id: '' })
-  const [submitLoading, setSubmitLoading] = useState(false)
-  const [settings, setSettings] = useState({ ouverture_reservation_atelier: false })
-  const [loadingSettings, setLoadingSettings] = useState(true)
-  const [errorMsg, setErrorMsg] = useState('');
-  const router = useRouter();
+  const [ateliers, setAteliers] = useState([]);
+  const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState({ ouverture_reservation_atelier: false });
 
   useEffect(() => {
-    fetchData()
+    fetchData();
     const fetchSettings = async () => {
-      const { data } = await supabase.from('settings').select('*').single()
-      if (data) setSettings(data)
-      setLoadingSettings(false)
-    }
-    fetchSettings()
-  }, [])
+      const { data } = await supabase.from('settings').select('*').single();
+      if (data) setSettings(data);
+    };
+    fetchSettings();
+  }, [user.email]);
 
   const fetchData = async () => {
-    setLoading(true)
-    const { data: all, error } = await supabase.from('ateliers').select('*').order('date_heure')
-    // Récupérer le nombre de réservations externes pour chaque atelier
-    const places = {}
-    for (const a of all || []) {
-      const { count } = await supabase
-        .from('reservations_ateliers')
-        .select('*', { count: 'exact', head: true })
-        .eq('atelier_id', a.id)
-        .eq('type', 'externe')
-      places[a.id] = count
-    }
-    setPlacesExternes(places)
-    setAteliers(all || [])
-    setLoading(false)
-  }
+    setLoading(true);
+    const { data: ateliersData } = await supabase
+      .from('ateliers')
+      .select('*, reservations_ateliers(count)')
+      .order('date_heure');
+
+    const { data: reservationsData } = await supabase
+      .from('reservations_ateliers')
+      .select('atelier_id')
+      .eq('email', user.email);
+      
+    if (ateliersData) setAteliers(ateliersData);
+    if (reservationsData) setReservations(reservationsData.map(r => r.atelier_id));
+    setLoading(false);
+  };
 
   const handleReserver = async (atelierId) => {
     const toastId = toast.loading('Réservation en cours...');
@@ -84,25 +74,33 @@ export default function ReservationAteliers({ user }) {
     const response = await fetch('/api/reservation-atelier', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-      userId: user.id,
-      atelierId: atelierId
-    })
+      body: JSON.stringify({
+        atelier_id: atelierId,
+        nom: user.nom,
+        prenom: user.prenom,
+        email: user.email,
+        telephone: user.telephone
+      })
     });
 
     const data = await response.json();
     if (response.ok) {
       toast.success(data.message || 'Réservation confirmée !', { id: toastId });
-      fetchData(); // Recharger les données pour mettre à jour l'UI
+      fetchData();
     } else {
       toast.error(data.message || 'Erreur lors de la réservation.', { id: toastId });
     }
   };
 
-  if (loadingSettings) return <CircularProgress />
-  if (!settings.ouverture_reservation_atelier) return <Box sx={{ p: 4 }}><Typography variant="h5">Les réservations d'ateliers ne sont pas encore ouvertes.</Typography></Box>
-
-  if (loading) return <CircularProgress />
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
+  
+  if (!settings.ouverture_reservation_atelier) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="info">Les réservations d'ateliers ne sont pas encore ouvertes.</Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 2, maxWidth: 900, mx: 'auto' }}>
@@ -146,5 +144,5 @@ export default function ReservationAteliers({ user }) {
         })}
       </List>
     </Box>
-  )
+  );
 }

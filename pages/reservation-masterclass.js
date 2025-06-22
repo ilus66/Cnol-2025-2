@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabaseClient';
 import {
   Box, Typography, Button, CircularProgress, List, ListItem, ListItemText,
-  Alert, Paper, Chip, Divider
+  Alert, Paper
 } from '@mui/material';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -25,7 +24,6 @@ export const getServerSideProps = async ({ req }) => {
       return { redirect: { destination: '/identification?error=user_not_found', permanent: false } };
     }
     
-    // Vérifier si l'utilisateur a le droit de réserver (Opticien ou Ophtalmologue)
     if (user.fonction !== 'Opticien' && user.fonction !== 'Ophtalmologue') {
         return {
             redirect: { destination: '/mon-espace?error=access_denied', permanent: false },
@@ -76,10 +74,13 @@ export default function ReservationMasterclass({ user }) {
     const response = await fetch('/api/reservation-masterclass', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-      userId: user.id,
-      masterclassId: masterclassId
-    })
+      body: JSON.stringify({
+        masterclass_id: masterclassId,
+        nom: user.nom,
+        prenom: user.prenom,
+        email: user.email,
+        telephone: user.telephone
+      })
     });
 
     const data = await response.json();

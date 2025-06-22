@@ -53,18 +53,30 @@ export default function ReservationMasterclass({ user }) {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: masterclassesData } = await supabase
+
+    const { data: masterclassesData, error: masterclassesError } = await supabase
       .from('masterclass')
-      .select('*, reservations_masterclass(count)')
+      .select(`
+        *,
+        reservations_masterclass ( statut )
+      `)
       .order('date_heure');
 
+    if (masterclassesData) {
+        const transformedMasterclasses = masterclassesData.map(mc => {
+            const placesPrises = mc.reservations_masterclass.filter(r => r.statut === 'confirmé').length;
+            return { ...mc, placesPrises };
+        });
+        setMasterclasses(transformedMasterclasses);
+    }
+    
     const { data: reservationsData } = await supabase
       .from('reservations_masterclass')
       .select('masterclass_id, statut')
       .eq('email', user.email);
       
-    if (masterclassesData) setMasterclasses(masterclassesData);
     if (reservationsData) setReservations(reservationsData);
+
     setLoading(false);
   };
 
@@ -114,8 +126,9 @@ export default function ReservationMasterclass({ user }) {
       <List>
         {masterclasses.map((masterclass) => {
           const reservation = reservations.find(r => r.masterclass_id === masterclass.id);
-          const placesPrises = masterclass.reservations_masterclass[0]?.count || 0;
-          const isFull = placesPrises >= masterclass.capacite;
+          const placesPrises = masterclass.placesPrises || 0;
+          const placesRestantes = (masterclass.places || 0) - placesPrises;
+          const isFull = placesRestantes <= 0;
 
           let buttonText = 'Réserver';
           let buttonColor = 'primary';
@@ -145,7 +158,7 @@ export default function ReservationMasterclass({ user }) {
                       {new Date(masterclass.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
                     </Typography>
                     <br />
-                    Salle: {masterclass.salle} | Places restantes: {masterclass.capacite - placesPrises}
+                    Salle: {masterclass.salle} | Places restantes: {placesRestantes}
                   </>
                 }
               />

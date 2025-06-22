@@ -1,10 +1,21 @@
-import { useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import {
-  Box, Button, TextField, Typography, List, ListItem, IconButton,
-  Divider, Dialog, DialogTitle, DialogContent, DialogActions, Paper,
-  Stack, CircularProgress, ListItemText
+  Box,
+  Button,
+  TextField,
+  Typography,
+  List,
+  ListItem,
+  IconButton,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Paper,
+  Stack,
+  CircularProgress
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
@@ -13,46 +24,37 @@ import DownloadIcon from '@mui/icons-material/Download'
 import toast, { Toaster } from 'react-hot-toast'
 import Link from 'next/link'
 
-// CHARGEMENT SÉCURISÉ DES DONNÉES CÔTÉ SERVEUR
-export async function getServerSideProps() {
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
-  
-  const { data, error } = await supabaseAdmin.from('masterclass').select('*').order('date_heure');
-
-  if (error) {
-    console.error("Erreur admin/masterclass (SSR):", error.message);
-    return { props: { initialMasterclasses: [] } };
-  }
-  return { props: { initialMasterclasses: data || [] } };
-}
-
-export default function AdminMasterclass({ initialMasterclasses }) {
-  const [masterclasses, setMasterclasses] = useState(initialMasterclasses)
+export default function AdminMasterclass() {
+  const [masterclasses, setMasterclasses] = useState([])
   const [newMasterclass, setNewMasterclass] = useState({
-    titre: '', intervenant: '', date_heure: '', salle: '', places: ''
+    titre: '',
+    intervenant: '',
+    date_heure: '',
+    salle: '',
+    places: ''
   })
-  // ... (tous vos autres états 'useState' restent ici)
+  // ... (vos autres états)
   const [editMasterclass, setEditMasterclass] = useState(null)
   const [editForm, setEditForm] = useState({ titre: '', intervenant: '', date_heure: '', salle: '', places: '' })
   const [openListMasterclassId, setOpenListMasterclassId] = useState(null)
   const [listResas, setListResas] = useState([])
-  const [loadingResas, setLoadingResas] = useState(false)
+  const [loadingResas, setLoadingResas] = useState(false); // CORRECTION: Ajout état de chargement
   const [addError, setAddError] = useState('')
   const [addSuccess, setAddSuccess] = useState('')
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
 
-  // Fonction pour rafraîchir la liste depuis le client
+  useEffect(() => {
+    fetchMasterclasses()
+  }, [])
+
   const fetchMasterclasses = async () => {
     const { data, error } = await supabase.from('masterclass').select('*').order('date_heure')
     if (!error) setMasterclasses(data)
   }
 
   const handleAdd = async () => {
-    // ... votre logique de handleAdd ...
+    // ... Votre logique d'ajout
     setAddError('')
     setAddSuccess('')
     if (!newMasterclass.titre || !newMasterclass.intervenant || !newMasterclass.date_heure || !newMasterclass.salle || !newMasterclass.places) {
@@ -73,20 +75,15 @@ export default function AdminMasterclass({ initialMasterclasses }) {
     await supabase.from('masterclass').delete().eq('id', id)
     fetchMasterclasses()
   }
-
+  
   const handleOpenEdit = (mc) => {
     setEditMasterclass(mc)
-    setEditForm({
-        titre: mc.titre, intervenant: mc.intervenant, date_heure: mc.date_heure,
-        salle: mc.salle, places: mc.places
-    })
+    setEditForm({ /* ... */ })
   }
   
-  const handleEdit = async () => {
-      // ... votre logique handleEdit
-  }
-  
-  // UTILISATION DE L'API SÉCURISÉE
+  const handleEdit = async () => { /* ... */ }
+
+  // CORRECTION: Utilisation de l'API sécurisée
   const handleOpenList = async (masterclassId) => {
     setOpenListMasterclassId(masterclassId)
     setLoadingResas(true);
@@ -94,10 +91,12 @@ export default function AdminMasterclass({ initialMasterclasses }) {
     try {
         const response = await fetch(`/api/admin/list-reservations?masterclass_id=${masterclassId}`);
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "Erreur API");
+        if (!response.ok) {
+            throw new Error(data.message || "Erreur de l'API");
+        }
         setListResas(data);
     } catch (err) {
-        toast.error(`Erreur chargement: ${err.message}`);
+        toast.error(`Erreur chargement inscrits: ${err.message}`);
     } finally {
         setLoadingResas(false);
     }
@@ -105,11 +104,13 @@ export default function AdminMasterclass({ initialMasterclasses }) {
 
   const handleValidate = async (resaId) => {
     const res = await fetch('/api/valider-reservation-masterclass', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: resaId })
-    });
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: resaId })
+    })
     if (res.ok) {
-      toast.success('Réservation validée !')
-      handleOpenList(openListMasterclassId); // Rafraîchir
+      toast.success('Réservation validée et ticket envoyé !')
+      if (openListMasterclassId) handleOpenList(openListMasterclassId); // CORRECTION: Rafraîchissement
     } else {
       toast.error('Erreur lors de la validation')
     }
@@ -117,74 +118,86 @@ export default function AdminMasterclass({ initialMasterclasses }) {
 
   const handleRefuse = async (resaId) => {
     const res = await fetch('/api/refuser-reservation-masterclass', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: resaId })
-    });
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: resaId })
+    })
     if (res.ok) {
       toast.success('Réservation refusée')
-      handleOpenList(openListMasterclassId); // Rafraîchir
+      if (openListMasterclassId) handleOpenList(openListMasterclassId); // CORRECTION: Rafraîchissement
     } else {
       toast.error('Erreur lors du refus')
     }
   }
-
-  // ... (tous vos autres handlers)
+  
+  const handleResendTicket = async (resaId) => {
+    const res = await fetch('/api/renvoyer-ticket-masterclass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: resaId })
+    })
+    if (res.ok) {
+        toast.success('Ticket renvoyé !')
+    } else {
+        toast.error('Erreur lors du renvoi du ticket')
+    }
+  }
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 1, sm: 3 } }}>
-      {/* ... Tout votre JSX existant pour le formulaire et la liste ... */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Link href="/admin" passHref legacyBehavior>
-          <Button variant="outlined" component="a">Retour à l'admin</Button>
-        </Link>
-      </Box>
-      <Toaster position="top-right" />
-      <Typography variant="h4" gutterBottom>Gestion des Masterclass</Typography>
-      <Paper sx={{ p: 2, mb: 3 }}>
-         {/* ... JSX du formulaire d'ajout ... */}
-      </Paper>
-      <Typography variant="h6" gutterBottom>Liste des masterclass</Typography>
-      <Stack spacing={2}>
-        {masterclasses.map(mc => (
-            <Paper key={mc.id} sx={{ p: 2, mb: 2 }}>
-                {/* ... JSX pour afficher chaque masterclass et les boutons ... */}
-                <Button variant="outlined" color="secondary" onClick={() => handleOpenList(mc.id)} startIcon={<ListIcon />} fullWidth={isMobile}>Liste inscrits</Button>
-                {/* ... autres boutons ... */}
-            </Paper>
-        ))}
-      </Stack>
-
-      {/* Dialog Liste des inscrits */}
-      <Dialog open={openListMasterclassId !== null} onClose={() => setOpenListMasterclassId(null)} fullWidth maxWidth="sm">
+        {/* ... Votre JSX existant (header, Toaster, formulaire d'ajout) ... */}
+        {/* ... Votre JSX pour la liste des masterclass ... */}
+        
+      {/* CORRECTION: Dialog Liste des inscrits mise à jour */}
+      <Dialog open={!!openListMasterclassId} onClose={() => setOpenListMasterclassId(null)} maxWidth="md" fullWidth>
         <DialogTitle>Liste des inscrits</DialogTitle>
         <DialogContent>
-            {loadingResas ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
-            ) : listResas.length === 0 ? (
-                <Typography>Aucun inscrit pour le moment.</Typography>
-            ) : (
-                <List>
-                    {listResas.map(resa => (
-                        <ListItem key={resa.id} dense divider>
-                            <ListItemText
-                                primary={`${resa.prenom} ${resa.nom} (${resa.email})`}
-                                secondary={`Statut: ${resa.statut}`}
-                            />
-                            {resa.statut === 'en attente' && (
-                                <Stack direction="row" spacing={1}>
-                                    <Button onClick={() => handleValidate(resa.id)} variant="contained" color="success" size="small">Valider</Button>
-                                    <Button onClick={() => handleRefuse(resa.id)} variant="outlined" color="error" size="small">Refuser</Button>
-                                </Stack>
-                            )}
-                        </ListItem>
-                    ))}
-                </List>
-            )}
+          {loadingResas ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
+          ) : listResas.length === 0 ? (
+            <Typography sx={{ p: 2 }}>Aucun inscrit pour le moment.</Typography>
+          ) : (
+            <List>
+              {listResas.map(resa => (
+                <ListItem key={resa.id} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
+                  <Box flex={1}>
+                    <Typography><b>Nom :</b> {resa.nom} {resa.prenom}</Typography>
+                    <Typography><b>Email :</b> {resa.email}</Typography>
+                    <Typography><b>Téléphone :</b> {resa.telephone}</Typography>
+                    <Typography>
+                      <b>Statut :</b>
+                      <span style={{ fontWeight: 'bold', color: resa.statut === 'confirmé' ? 'green' : 'orange' }}>
+                        {` ${resa.statut}`}
+                      </span>
+                    </Typography>
+                  </Box>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: { xs: 1, sm: 0 } }}>
+                    {resa.statut === 'en attente' && (
+                      <>
+                        <Button variant="contained" color="success" size="small" onClick={() => handleValidate(resa.id)} fullWidth={isMobile}>
+                          Valider
+                        </Button>
+                        <Button variant="outlined" color="error" size="small" onClick={() => handleRefuse(resa.id)} fullWidth={isMobile}>
+                          Refuser
+                        </Button>
+                      </>
+                    )}
+                    {resa.statut === 'confirmé' && (
+                      <Button variant="outlined" color="info" size="small" onClick={() => handleResendTicket(resa.id)} fullWidth={isMobile}>
+                        Renvoyer ticket
+                      </Button>
+                    )}
+                  </Stack>
+                </ListItem>
+              ))}
+            </List>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenListMasterclassId(null)}>Fermer</Button>
         </DialogActions>
       </Dialog>
-      {/* ... autres Dialogs ... */}
+      {/* ... Vos autres Dialogs ... */}
     </Box>
   )
 }

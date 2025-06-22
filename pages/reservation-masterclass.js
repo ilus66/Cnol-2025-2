@@ -60,11 +60,11 @@ export default function ReservationMasterclass({ user }) {
 
     const { data: reservationsData } = await supabase
       .from('reservations_masterclass')
-      .select('masterclass_id')
+      .select('masterclass_id, statut')
       .eq('email', user.email);
       
     if (masterclassesData) setMasterclasses(masterclassesData);
-    if (reservationsData) setReservations(reservationsData.map(r => r.masterclass_id));
+    if (reservationsData) setReservations(reservationsData);
     setLoading(false);
   };
 
@@ -85,7 +85,7 @@ export default function ReservationMasterclass({ user }) {
 
     const data = await response.json();
     if (response.ok) {
-      toast.success(data.message || 'Réservation confirmée !', { id: toastId });
+      toast.success(data.message || 'Demande de réservation envoyée !', { id: toastId });
       fetchData();
     } else {
       toast.error(data.message || 'Erreur lors de la réservation.', { id: toastId });
@@ -113,12 +113,30 @@ export default function ReservationMasterclass({ user }) {
       </Paper>
       <List>
         {masterclasses.map((masterclass) => {
-          const isReserved = reservations.includes(masterclass.id);
+          const reservation = reservations.find(r => r.masterclass_id === masterclass.id);
           const placesPrises = masterclass.reservations_masterclass[0]?.count || 0;
           const isFull = placesPrises >= masterclass.capacite;
 
+          let buttonText = 'Réserver';
+          let buttonColor = 'primary';
+          let buttonDisabled = isFull;
+
+          if (reservation) {
+            if (reservation.statut === 'confirmé') {
+              buttonText = 'Confirmé';
+              buttonColor = 'success';
+              buttonDisabled = true;
+            } else if (reservation.statut === 'en attente') {
+              buttonText = 'En attente';
+              buttonColor = 'warning';
+              buttonDisabled = true;
+            }
+          } else if (isFull) {
+            buttonText = 'Complet';
+          }
+
           return (
-            <ListItem key={masterclass.id} divider sx={{ opacity: (isFull && !isReserved) ? 0.6 : 1 }}>
+            <ListItem key={masterclass.id} divider sx={{ opacity: (isFull && !reservation) ? 0.6 : 1 }}>
               <ListItemText
                 primary={`${masterclass.titre} — ${masterclass.intervenant}`}
                 secondary={
@@ -134,10 +152,10 @@ export default function ReservationMasterclass({ user }) {
               <Button
                 variant="contained"
                 onClick={() => handleReserver(masterclass.id)}
-                disabled={isFull || isReserved}
-                color={isReserved ? "success" : "primary"}
+                disabled={buttonDisabled}
+                color={buttonColor}
               >
-                {isReserved ? 'Déjà Réservé' : (isFull ? 'Complet' : 'Réserver')}
+                {buttonText}
               </Button>
             </ListItem>
           );

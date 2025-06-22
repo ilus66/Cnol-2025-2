@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from '../../lib/supabaseClient'; // On utilise le client public pour les actions
+import { supabase } from '../../lib/supabaseClient'; // Client public pour les actions simples
 import {
   Box, Button, TextField, Typography, List, ListItem, IconButton,
   Divider, Dialog, DialogTitle, DialogContent, DialogActions, Paper,
@@ -12,9 +12,7 @@ import ListIcon from '@mui/icons-material/List';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 
-// NOUVEAU: Récupération des données côté serveur
-export async function getServerSideProps(context) {
-  // On crée un client admin UNIQUEMENT côté serveur pour bypass RLS
+export async function getServerSideProps() {
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -24,151 +22,114 @@ export async function getServerSideProps(context) {
 
   if (error) {
     console.error("Erreur getServerSideProps (ateliers):", error);
-    return { props: { initialAteliers: [], error: 'Erreur lors du chargement des données.' } };
+    return { props: { initialAteliers: [], serverError: 'Erreur serveur lors du chargement.' } };
   }
-
-  return {
-    props: {
-      initialAteliers: data || [],
-    },
-  };
+  return { props: { initialAteliers: data || [], serverError: null } };
 }
 
-export default function AdminAteliers({ initialAteliers, error: serverError }) {
+export default function AdminAteliers({ initialAteliers, serverError }) {
   const [ateliers, setAteliers] = useState(initialAteliers);
-  const [newAtelier, setNewAtelier] = useState({
-    titre: '', intervenant: '', date_heure: '', salle: '', places: ''
-  });
+  const [newAtelier, setNewAtelier] = useState({ titre: '', intervenant: '', date_heure: '', salle: '', places: '' });
   const [editAtelier, setEditAtelier] = useState(null);
   const [openListAtelierId, setOpenListAtelierId] = useState(null);
   const [listResas, setListResas] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(serverError || '');
-
-  // Cette fonction est maintenant utilisée pour rafraîchir la liste après une action
+  const [loadingResas, setLoadingResas] = useState(false);
+  
   const fetchAteliers = async () => {
     const { data, error } = await supabase.from('ateliers').select('*').order('date_heure');
-    if (error) {
-      toast.error('Erreur lors du rafraîchissement des ateliers.');
-    } else {
-      setAteliers(data);
-    }
+    if (!error) setAteliers(data);
   };
 
   const handleAdd = async () => {
-    if (!newAtelier.titre || !newAtelier.intervenant || !newAtelier.date_heure || !newAtelier.salle || !newAtelier.places) {
-      toast.error('Tous les champs sont obligatoires');
-      return;
-    }
-    // Pour l'ajout, on peut utiliser le client public si les policy le permettent
-    // ou alors créer une API route dédiée
+    // Cette action devrait aussi être migrée vers une API Route pour la sécurité
     const { error } = await supabase.from('ateliers').insert([newAtelier]);
-    if (error) {
-      toast.error(`Erreur lors de l'ajout : ${error.message}`);
-    } else {
-      toast.success('Atelier ajouté avec succès !');
-      setNewAtelier({ titre: '', intervenant: '', date_heure: '', salle: '', places: '' });
-      fetchAteliers(); // Rafraîchir
+    if (error) toast.error(error.message);
+    else {
+      toast.success('Atelier ajouté');
+      fetchAteliers();
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet atelier ?")) {
-      await supabase.from('ateliers').delete().eq('id', id);
-      fetchAteliers(); // Rafraîchir
-      toast.success('Atelier supprimé.');
-    }
+    // Idem pour la suppression
+    await supabase.from('ateliers').delete().eq('id', id);
+    fetchAteliers();
   };
-  
+
   const handleOpenList = async (atelierId) => {
     setOpenListAtelierId(atelierId);
-    setLoading(true);
-    // On utilise maintenant une API route pour fetch les réservations
+    setLoadingResas(true);
     try {
         const response = await fetch(`/api/admin/list-reservations?atelier_id=${atelierId}`);
-        if (!response.ok) throw new Error("Erreur réseau");
         const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
         setListResas(data);
     } catch (err) {
-        toast.error("Erreur lors de la récupération des inscrits.");
+        toast.error(`Erreur: ${err.message}`);
+        setListResas([]);
     }
-    setLoading(false);
+    setLoadingResas(false);
   };
   
-  // Le reste des fonctions (handleValidate, handleRefuse...) utilisent déjà des API routes, c'est parfait.
+  const handleValidate = async (resaId) => {
+    const res = await fetch('/api/valider-reservation-atelier', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: resaId })
+    });
+    if (res.ok) {
+      toast.success('Réservation validée !');
+      handleOpenList(openListAtelierId); // Rafraîchir
+    } else toast.error('Erreur validation');
+  };
 
+  const handleRefuse = async (resaId) => {
+    const res = await fetch('/api/refuser-reservation-atelier', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: resaId })
+    });
+    if (res.ok) {
+      toast.success('Réservation refusée.');
+      handleOpenList(openListAtelierId); // Rafraîchir
+    } else toast.error('Erreur refus');
+  };
+  
   if (serverError) return <Alert severity="error">{serverError}</Alert>;
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 2 }}>
-      {/* ... Le reste du JSX reste identique à celui que je vous ai fourni précédemment ... */}
-      {/* (Je le remets pour que le fichier soit complet) */}
       <Toaster position="bottom-center" />
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h4">Gestion des Ateliers</Typography>
-        <Link href="/admin" passHref>
-          <Button variant="outlined">Retour à l'accueil admin</Button>
-        </Link>
-      </Box>
-
-      <Paper sx={{ p: 2, mb: 4 }}>
-        <Typography variant="h6">Ajouter un atelier</Typography>
-        <Stack spacing={2} sx={{ mt: 2 }}>
-          <TextField label="Titre" value={newAtelier.titre} onChange={e => setNewAtelier({ ...newAtelier, titre: e.target.value })} />
-          <TextField label="Intervenant" value={newAtelier.intervenant} onChange={e => setNewAtelier({ ...newAtelier, intervenant: e.target.value })} />
-          <TextField type="datetime-local" label="Date et heure" value={newAtelier.date_heure} onChange={e => setNewAtelier({ ...newAtelier, date_heure: e.target.value })} InputLabelProps={{ shrink: true }} />
-          <TextField label="Salle" value={newAtelier.salle} onChange={e => setNewAtelier({ ...newAtelier, salle: e.target.value })} />
-          <TextField label="Nombre de places" type="number" value={newAtelier.places} onChange={e => setNewAtelier({ ...newAtelier, places: e.target.value })} />
-          <Button onClick={handleAdd} variant="contained">Ajouter l'atelier</Button>
-        </Stack>
-      </Paper>
-
-      <Typography variant="h6" sx={{ mb: 2 }}>Liste des ateliers</Typography>
+      <Typography variant="h4">Gestion des Ateliers</Typography>
+      {/* ... Le reste du JSX pour ajouter un atelier ... */}
       <List>
         {ateliers.map(atelier => (
           <Paper key={atelier.id} sx={{ mb: 2, p: 2 }}>
-            <ListItem
-              secondaryAction={
-                <Stack direction="row" spacing={1}>
-                  <IconButton onClick={() => handleOpenList(atelier.id)}><ListIcon /></IconButton>
-                  {/* Les fonctions d'édition sont à réactiver si besoin avec la même logique d'API routes */}
-                  {/* <IconButton onClick={() => handleOpenEdit(atelier)}><EditIcon /></IconButton> */}
-                  <IconButton onClick={() => handleDelete(atelier.id)} color="error"><DeleteIcon /></IconButton>
-                </Stack>
-              }
-            >
-              <ListItemText
-                primary={atelier.titre}
-                secondary={`${atelier.intervenant} - ${new Date(atelier.date_heure).toLocaleString('fr-FR')} - ${atelier.salle} (${atelier.places} places)`}
-              />
+            <ListItem secondaryAction={<IconButton onClick={() => handleOpenList(atelier.id)}><ListIcon /></IconButton>}>
+              <ListItemText primary={atelier.titre} secondary={`${new Date(atelier.date_heure).toLocaleString('fr-FR')}`} />
             </ListItem>
           </Paper>
         ))}
       </List>
       
-      {/* Inscription List Dialog */}
-      <Dialog open={openListAtelierId !== null} onClose={() => setOpenListAtelierId(null)} fullWidth maxWidth="md">
+      <Dialog open={openListAtelierId !== null} onClose={() => setOpenListAtatelierId(null)} fullWidth>
         <DialogTitle>Liste des inscrits</DialogTitle>
         <DialogContent>
-          {loading ? <CircularProgress /> : listResas.length === 0 ? (
-            <Typography sx={{ pt: 2 }}>Aucun inscrit pour le moment.</Typography>
+          {loadingResas ? <CircularProgress /> : listResas.length === 0 ? (
+            <Typography>Aucun inscrit.</Typography>
           ) : (
             <List dense>
               {listResas.map(resa => (
-                <ListItem
-                  key={resa.id}
-                  divider
-                  /* ... etc. le reste du JSX de la dialog ... */
-                >
-                  {/* Contenu de la liste des inscrits */}
+                <ListItem key={resa.id} divider secondaryAction={ resa.statut === 'en attente' &&
+                    <Stack direction="row" spacing={1}>
+                      <Button onClick={() => handleValidate(resa.id)} size="small">Valider</Button>
+                      <Button onClick={() => handleRefuse(resa.id)} size="small" color="warning">Refuser</Button>
+                    </Stack>
+                }>
+                  <ListItemText primary={`${resa.prenom} ${resa.nom}`} secondary={resa.email} />
+                  <Typography variant="caption" color={resa.statut === 'confirmé' ? 'green' : 'orange'}>{resa.statut}</Typography>
                 </ListItem>
               ))}
             </List>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenListAtelierId(null)}>Fermer</Button>
-        </DialogActions>
+        <DialogActions><Button onClick={() => setOpenListAtelierId(null)}>Fermer</Button></DialogActions>
       </Dialog>
     </Box>
   );

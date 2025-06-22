@@ -62,18 +62,6 @@ export default function Home() {
           {/* Retiré les boutons de scan */}
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, my: 3 }}>
-          {settings.ouverture_reservation_atelier && (
-            <AnimatedButton variant="contained" color="primary" href="/reservation-ateliers">
-              Réserver un atelier
-            </AnimatedButton>
-          )}
-          {settings.ouverture_reservation_masterclass && (
-            <AnimatedButton variant="contained" color="secondary" href="/reservation-masterclass">
-              Réserver une masterclass
-            </AnimatedButton>
-          )}
-        </Box>
       </main>
 
       {/* PWA Install Prompt */}

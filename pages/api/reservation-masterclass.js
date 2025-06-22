@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const sessionData = JSON.parse(decodeURIComponent(sessionCookie));
     const { data: userData, error: userError } = await supabaseAdmin
       .from('inscription')
-      .select('id, nom, prenom, email, valide, fonction')
+      .select('id, nom, prenom, email, valide, fonction, telephone')
       .eq('id', sessionData.id)
       .single();
 
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     }
 
     // L'email et autres infos sont récupérées depuis la session pour plus de sécurité
-    const { email, nom, prenom } = userData;
+    const { email, nom, prenom, telephone } = userData;
 
     // 3. Vérifier si une réservation existe déjà
     const { data: existing } = await supabaseAdmin
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     // 5. Insérer la nouvelle réservation avec le statut 'en attente'
     const { data, error } = await supabaseAdmin
       .from('reservations_masterclass')
-      .insert({ masterclass_id, nom, prenom, email, statut: 'en attente' })
+      .insert({ masterclass_id, nom, prenom, email, telephone, statut: 'en attente' })
       .select()
       .single();
 

@@ -8,14 +8,14 @@ import {
   List,
   ListItem,
   IconButton,
-  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Paper,
   Stack,
-  CircularProgress
+  CircularProgress,
+  ListItemText
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
@@ -44,6 +44,7 @@ export default function AdminAteliers() {
   const [listResas, setListResas] = useState([])
   const [addError, setAddError] = useState('')
   const [addSuccess, setAddSuccess] = useState('')
+  const [loadingResas, setLoadingResas] = useState(false)
 
   // Détection mobile
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
@@ -171,7 +172,7 @@ export default function AdminAteliers() {
       .eq('atelier_id', atelier.id)
     // Générer le CSV
     const header = [
-      'Titre atelier', 'Intervenant', 'Jour/heure', 'Salle', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Type', 'Validé', 'Scanné'
+      'Titre atelier', 'Intervenant', 'Jour/heure', 'Salle', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Type', 'Statut', 'Scanné'
     ]
     const rows = (resas || []).map(r => [
       atelier.titre,
@@ -183,7 +184,7 @@ export default function AdminAteliers() {
       r.email,
       r.telephone || '',
       r.type,
-      r.valide ? 'Oui' : 'Non',
+      r.statut,
       r.scanned ? 'Oui' : 'Non'
     ])
     const csv = [header, ...rows].map(r => r.join(',')).join('\n')
@@ -199,8 +200,20 @@ export default function AdminAteliers() {
 
   const handleOpenList = async (atelierId) => {
     setOpenListAtelierId(atelierId)
-    const { data } = await supabase.from('reservations_ateliers').select('*').eq('atelier_id', atelierId)
-    setListResas(data || [])
+    setLoadingResas(true);
+    setListResas([]);
+    try {
+        const response = await fetch(`/api/admin/list-reservations?atelier_id=${atelierId}`);
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || "Erreur inconnue de l'API");
+        }
+        setListResas(data);
+    } catch (err) {
+        toast.error(`Erreur chargement inscrits: ${err.message}`);
+    } finally {
+        setLoadingResas(false);
+    }
   }
 
   const handleValidate = async (resaId) => {
@@ -210,9 +223,8 @@ export default function AdminAteliers() {
       body: JSON.stringify({ id: resaId })
     })
     if (res.ok) {
-      toast.success('Réservation validée et ticket envoyé !')
-      fetchInternalResas(openAtelierId)
-      handleOpenList(openAtelierId)
+      toast.success('Réservation validée !')
+      await handleOpenList(openListAtelierId)
     } else {
       toast.error('Erreur lors de la validation')
     }
@@ -225,9 +237,8 @@ export default function AdminAteliers() {
       body: JSON.stringify({ id: resaId })
     })
     if (res.ok) {
-      toast.success('Réservation refusée')
-      fetchInternalResas(openAtelierId)
-      handleOpenList(openAtelierId)
+      toast.success('Réservation refusée !')
+      await handleOpenList(openListAtelierId)
     } else {
       toast.error('Erreur lors du refus')
     }
@@ -242,181 +253,119 @@ export default function AdminAteliers() {
     if (res.ok) {
       toast.success('Ticket renvoyé !')
     } else {
-      toast.error('Erreur lors du renvoi du ticket')
+      toast.error('Erreur lors de l\'envoi du ticket')
     }
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 1, sm: 3 } }}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Link href="/admin" passHref legacyBehavior>
-          <Button variant="outlined" component="a">Retour à l'admin</Button>
-        </Link>
-      </Box>
-      <Toaster position="top-right" />
-
-      <Typography variant="h4" gutterBottom>Gestion des Ateliers</Typography>
+    <Box sx={{ p: isMobile ? 1 : 3 }}>
+      <Toaster />
+      <Link href="/admin" passHref>
+        <Button variant="outlined" sx={{ mb: 2 }}>
+          Retour à l'admin
+        </Button>
+      </Link>
+      <Typography variant="h4" gutterBottom>
+        Gestion des Ateliers
+      </Typography>
 
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>Ajouter un atelier</Typography>
-        <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
+        <Typography variant="h6">Ajouter un atelier</Typography>
+        <Stack spacing={2} sx={{ mt: 2 }}>
           <TextField
             label="Titre"
             value={newAtelier.titre}
-            onChange={(e) => setNewAtelier({ ...newAtelier, titre: e.target.value })}
-            fullWidth
-            required
+            onChange={e => setNewAtelier({ ...newAtelier, titre: e.target.value })}
           />
           <TextField
             label="Intervenant"
             value={newAtelier.intervenant}
-            onChange={(e) => setNewAtelier({ ...newAtelier, intervenant: e.target.value })}
-            fullWidth
-            required
+            onChange={e =>
+              setNewAtelier({ ...newAtelier, intervenant: e.target.value })
+            }
           />
-        </Stack>
-        <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
           <TextField
-            label="Date et heure"
+            label="Date et Heure"
             type="datetime-local"
             value={newAtelier.date_heure}
-            onChange={(e) => setNewAtelier({ ...newAtelier, date_heure: e.target.value })}
-            fullWidth
-            required
+            onChange={e =>
+              setNewAtelier({ ...newAtelier, date_heure: e.target.value })
+            }
             InputLabelProps={{ shrink: true }}
           />
           <TextField
             label="Salle"
             value={newAtelier.salle}
-            onChange={(e) => setNewAtelier({ ...newAtelier, salle: e.target.value })}
-            fullWidth
-            required
+            onChange={e => setNewAtelier({ ...newAtelier, salle: e.target.value })}
           />
           <TextField
             label="Places"
             type="number"
             value={newAtelier.places}
-            onChange={(e) => setNewAtelier({ ...newAtelier, places: e.target.value })}
-            fullWidth
-            required
+            onChange={e => setNewAtelier({ ...newAtelier, places: e.target.value })}
           />
+          <Button variant="contained" onClick={handleAdd}>
+            Ajouter
+          </Button>
+          {addError && <Typography color="error">{addError}</Typography>}
         </Stack>
-        {addError && <Typography color="error" sx={{ mb: 2 }}>{addError}</Typography>}
-        {addSuccess && <Typography color="success.main" sx={{ mb: 2 }}>{addSuccess}</Typography>}
-        <Button variant="contained" color="primary" onClick={handleAdd} fullWidth={isMobile}>
-          Ajouter l'atelier
-        </Button>
       </Paper>
 
-      <Typography variant="h6" gutterBottom>Liste des ateliers</Typography>
-      <Stack spacing={2}>
+      <Typography variant="h5" sx={{ mt: 3 }}>
+        Liste des ateliers
+      </Typography>
+      <List>
         {ateliers.map(atelier => (
-          <Paper key={atelier.id} sx={{ p: 2, mb: 2 }}>
-            <Stack spacing={1}>
-              <Typography variant="h6">{atelier.titre}</Typography>
-              <Typography><b>Intervenant :</b> {atelier.intervenant}</Typography>
-              <Typography><b>Date/Heure :</b> {new Date(atelier.date_heure).toLocaleString()}</Typography>
-              <Typography><b>Salle :</b> {atelier.salle}</Typography>
-              <Typography><b>Places :</b> {atelier.places}</Typography>
-              <Typography><b>Places restantes :</b> {atelier.places - (atelier.reservations_validated || 0)}</Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
-                <Button variant="outlined" color="primary" onClick={() => handleOpenInternal(atelier.id)} fullWidth={isMobile}>Réservations internes</Button>
-                <Button variant="outlined" color="secondary" onClick={() => handleOpenList(atelier.id)} startIcon={<ListIcon />} fullWidth={isMobile}>Liste inscrits</Button>
-                <Button variant="outlined" color="success" onClick={() => handleExport(atelier)} startIcon={<DownloadIcon />} fullWidth={isMobile}>Exporter</Button>
-                <Button variant={atelier.publie ? 'outlined' : 'contained'} color={atelier.publie ? 'warning' : 'success'} onClick={async () => { await supabase.from('ateliers').update({ publie: !atelier.publie }).eq('id', atelier.id); fetchAteliers(); }} fullWidth={isMobile}>{atelier.publie ? 'Cacher' : 'Publier'}</Button>
-                <Button variant="outlined" color="warning" onClick={() => handleOpenEdit(atelier)} startIcon={<EditIcon />} fullWidth={isMobile}>Modifier</Button>
-                <Button variant="outlined" color="error" onClick={() => handleDelete(atelier.id)} startIcon={<DeleteIcon />} fullWidth={isMobile}>Supprimer</Button>
-              </Stack>
-            </Stack>
+          <Paper key={atelier.id} sx={{ mb: 2 }}>
+            <ListItem>
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="h6">{atelier.titre}</Typography>
+                <Typography>
+                  {atelier.intervenant} -{' '}
+                  {new Date(atelier.date_heure).toLocaleString()} - {atelier.salle}{' '}
+                  - {atelier.places} places
+                </Typography>
+              </Box>
+              <Box>
+                <IconButton onClick={() => handleOpenEdit(atelier)}>
+                  <EditIcon />
+                </IconButton>
+                <IconButton onClick={() => handleDelete(atelier.id)}>
+                  <DeleteIcon />
+                </IconButton>
+                <IconButton onClick={() => handleOpenList(atelier.id)}>
+                  <ListIcon />
+                </IconButton>
+                <IconButton onClick={() => handleExport(atelier)}>
+                    <DownloadIcon />
+                </IconButton>
+              </Box>
+            </ListItem>
           </Paper>
         ))}
-      </Stack>
-
-      {/* Dialog Réservations internes */}
-      <Dialog open={!!openAtelierId} onClose={() => setOpenAtelierId(null)} maxWidth="md" fullWidth>
-        <DialogTitle>Réservations internes</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>Ajouter une réservation interne</Typography>
-            <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
-              <TextField
-                label="Nom"
-                value={internalForm.nom}
-                onChange={(e) => setInternalForm({ ...internalForm, nom: e.target.value })}
-                fullWidth
-                required
-              />
-              <TextField
-                label="Prénom"
-                value={internalForm.prenom}
-                onChange={(e) => setInternalForm({ ...internalForm, prenom: e.target.value })}
-                fullWidth
-                required
-              />
-            </Stack>
-            <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
-              <TextField
-                label="Email"
-                type="email"
-                value={internalForm.email}
-                onChange={(e) => setInternalForm({ ...internalForm, email: e.target.value })}
-                fullWidth
-                required
-              />
-              <TextField
-                label="Téléphone"
-                value={internalForm.telephone}
-                onChange={(e) => setInternalForm({ ...internalForm, telephone: e.target.value })}
-                fullWidth
-                required
-              />
-            </Stack>
-            {internalError && <Typography color="error" sx={{ mb: 2 }}>{internalError}</Typography>}
-            <Button variant="contained" color="primary" onClick={handleAddInternal} fullWidth={isMobile}>
-              Ajouter
-            </Button>
-          </Box>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="h6" gutterBottom>Liste des réservations internes</Typography>
-          <List>
-            {internalResas.map(resa => (
-              <ListItem key={resa.id} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
-                <Box flex={1}>
-                  <Typography><b>Nom :</b> {resa.nom} {resa.prenom}</Typography>
-                  <Typography><b>Email :</b> {resa.email}</Typography>
-                  <Typography><b>Téléphone :</b> {resa.telephone}</Typography>
-                </Box>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: { xs: 1, sm: 0 } }}>
-                  <Button variant="contained" color="error" size="small" onClick={() => handleDelete(resa.id)} fullWidth={isMobile}>
-                    Supprimer
-                  </Button>
-                </Stack>
-              </ListItem>
-            ))}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenAtelierId(null)}>Fermer</Button>
-        </DialogActions>
-      </Dialog>
+      </List>
 
       {/* Dialog Liste des inscrits */}
-      <Dialog open={!!openListAtelierId} onClose={() => setOpenListAtelierId(null)} maxWidth="md" fullWidth>
+      <Dialog open={openListAtelierId !== null} onClose={() => setOpenListAtelierId(null)} fullWidth maxWidth="sm">
         <DialogTitle>Liste des inscrits</DialogTitle>
         <DialogContent>
-          <List>
-            {listResas.map(resa => (
-              <ListItem key={resa.id} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
-                <Box flex={1}>
-                  <Typography><b>Nom :</b> {resa.nom} {resa.prenom}</Typography>
-                  <Typography><b>Email :</b> {resa.email}</Typography>
-                  <Typography><b>Téléphone :</b> {resa.telephone}</Typography>
-                  <Typography><b>Type :</b> {resa.type}</Typography>
-                  <Typography><b>Statut :</b> <span style={{ color: resa.valide ? 'green' : 'red' }}>{resa.valide ? 'Validé' : 'Non validé'}</span></Typography>
-                  <Typography><b>Scanné :</b> {resa.scanned ? '✓' : '✗'}</Typography>
-                </Box>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: { xs: 1, sm: 0 } }}>
-                  {!resa.valide && resa.type === 'externe' && (
+          {loadingResas ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
+          ) : listResas.length === 0 ? (
+            <Typography>Aucun inscrit pour le moment.</Typography>
+          ) : (
+            <List>
+              {listResas.map(resa => (
+                <ListItem key={resa.id} dense divider>
+                  <ListItemText
+                    primary={`${resa.prenom} ${resa.nom} (${resa.email})`}
+                    secondary={
+                        <Typography component="span" sx={{ fontWeight: 'bold', color: resa.statut === 'confirmé' ? 'green' : 'orange' }}>
+                          Statut: {resa.statut}
+                        </Typography>
+                    }
+                  />
+                  {resa.statut === 'en attente' && (
                     <>
                       <Button variant="contained" color="success" size="small" onClick={() => handleValidate(resa.id)} fullWidth={isMobile}>
                         Valider
@@ -426,70 +375,18 @@ export default function AdminAteliers() {
                       </Button>
                     </>
                   )}
-                  {resa.valide && (
+                  {resa.statut === 'confirmé' && (
                     <Button variant="contained" color="info" size="small" onClick={() => handleResendTicket(resa.id)} fullWidth={isMobile}>
                       Renvoyer ticket
                     </Button>
                   )}
-                </Stack>
-              </ListItem>
-            ))}
-          </List>
+                </ListItem>
+              ))}
+            </List>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenListAtelierId(null)}>Fermer</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialog Modification */}
-      <Dialog open={!!editAtelier} onClose={() => setEditAtelier(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Modifier l'atelier</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 2 }}>
-            <TextField
-              label="Titre"
-              value={editForm.titre}
-              onChange={(e) => setEditForm({ ...editForm, titre: e.target.value })}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Intervenant"
-              value={editForm.intervenant}
-              onChange={(e) => setEditForm({ ...editForm, intervenant: e.target.value })}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Date et heure"
-              type="datetime-local"
-              value={editForm.date_heure}
-              onChange={(e) => setEditForm({ ...editForm, date_heure: e.target.value })}
-              fullWidth
-              required
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="Salle"
-              value={editForm.salle}
-              onChange={(e) => setEditForm({ ...editForm, salle: e.target.value })}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Places"
-              type="number"
-              value={editForm.places}
-              onChange={(e) => setEditForm({ ...editForm, places: e.target.value })}
-              fullWidth
-              required
-            />
-          </Stack>
-          {editError && <Typography color="error" sx={{ mt: 2 }}>{editError}</Typography>}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditAtelier(null)}>Annuler</Button>
-          <Button onClick={handleEdit} variant="contained" color="primary">Enregistrer</Button>
         </DialogActions>
       </Dialog>
     </Box>

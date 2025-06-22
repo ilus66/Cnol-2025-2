@@ -17,6 +17,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Vérifier si une réservation existe déjà
     const { data: existing } = await supabaseAdmin
       .from('reservations_ateliers')
       .select('id')
@@ -28,9 +29,10 @@ export default async function handler(req, res) {
       return res.status(409).json({ message: 'Vous êtes déjà inscrit à cet atelier.' });
     }
 
+    // Insérer la nouvelle réservation SANS le champ 'statut'
     const { data, error } = await supabaseAdmin
       .from('reservations_ateliers')
-      .insert({ atelier_id, nom, prenom, email, telephone, statut: 'confirmé' })
+      .insert({ atelier_id, nom, prenom, email, telephone })
       .select()
       .single();
 

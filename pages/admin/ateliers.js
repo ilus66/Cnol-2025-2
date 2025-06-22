@@ -45,7 +45,6 @@ export default function AdminAteliers() {
   const [addError, setAddError] = useState('')
   const [addSuccess, setAddSuccess] = useState('')
 
-  // Détection mobile
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
 
   useEffect(() => {
@@ -57,7 +56,7 @@ export default function AdminAteliers() {
     if (!error) setAteliers(data)
   }
 
-  const handleAdd = async () => {
+  const handleAdd = async () => { /* Votre code original */
     setAddError('')
     setAddSuccess('')
     if (!newAtelier.titre || !newAtelier.intervenant || !newAtelier.date_heure || !newAtelier.salle || !newAtelier.places) {
@@ -75,22 +74,22 @@ export default function AdminAteliers() {
     }
   }
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id) => { /* Votre code original */
     await supabase.from('ateliers').delete().eq('id', id)
     fetchAteliers()
   }
 
-  const fetchInternalResas = async (atelierId) => {
+  const fetchInternalResas = async (atelierId) => { /* Votre code original */
     const { data } = await supabase.from('reservations_ateliers').select('*').eq('atelier_id', atelierId).eq('type', 'interne')
     setInternalResas(data || [])
   }
 
-  const handleOpenInternal = async (atelierId) => {
+  const handleOpenInternal = async (atelierId) => { /* Votre code original */
     setOpenAtelierId(atelierId)
     await fetchInternalResas(atelierId)
   }
 
-  const handleAddInternal = async () => {
+  const handleAddInternal = async () => { /* Votre code original */
     setInternalError('')
     if (!internalForm.nom || !internalForm.prenom || !internalForm.email || !internalForm.telephone) {
       setInternalError('Tous les champs sont obligatoires')
@@ -100,32 +99,27 @@ export default function AdminAteliers() {
       setInternalError('Limite de 15 réservations internes atteinte')
       return
     }
-
-    // NOUVELLE LOGIQUE : Insertion directe en base de données
     const { data: user } = await supabase
       .from('inscription')
       .select('id, nom, prenom, email, telephone, participant_type')
       .eq('email', internalForm.email.trim())
       .single();
-
     if (!user) {
       setInternalError("Cet utilisateur n'existe pas dans la base des inscrits. Veuillez l'ajouter d'abord.");
       return;
     }
-
     const { error: insertError } = await supabase
       .from('reservations_ateliers')
       .insert({
         atelier_id: openAtelierId,
-        participant_id: user.id, // Utiliser l'id de l'utilisateur trouvé
+        participant_id: user.id,
         type: user.participant_type === 'exposant' || user.participant_type === 'intervenant' || user.participant_type === 'vip' || user.participant_type === 'organisation' ? 'interne' : 'externe',
-        valide: true, // Les inscriptions internes sont validées d'office
+        valide: true,
         nom: user.nom,
         prenom: user.prenom,
         email: user.email,
         telephone: user.telephone,
       });
-
     if (insertError) {
       console.error('Erreur insertion directe:', insertError);
       setInternalError('Erreur lors de l\'ajout : ' + insertError.message);
@@ -136,7 +130,7 @@ export default function AdminAteliers() {
     }
   }
 
-  const handleOpenEdit = (atelier) => {
+  const handleOpenEdit = (atelier) => { /* Votre code original */
     setEditAtelier(atelier)
     setEditForm({
       titre: atelier.titre,
@@ -148,7 +142,7 @@ export default function AdminAteliers() {
     setEditError('')
   }
 
-  const handleEdit = async () => {
+  const handleEdit = async () => { /* Votre code original */
     setEditError('')
     if (!editForm.titre || !editForm.date_heure) {
       setEditError('Titre et date/heure obligatoires')
@@ -163,31 +157,20 @@ export default function AdminAteliers() {
     }
   }
 
-  const handleExport = async (atelier) => {
-    // Récupérer toutes les réservations pour cet atelier
+  const handleExport = async (atelier) => { /* Votre code original */
     const { data: resas } = await supabase
       .from('reservations_ateliers')
       .select('*')
       .eq('atelier_id', atelier.id)
-    // Générer le CSV
     const header = [
       'Titre atelier', 'Intervenant', 'Jour/heure', 'Salle', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Type', 'Validé', 'Scanné'
     ]
     const rows = (resas || []).map(r => [
-      atelier.titre,
-      atelier.intervenant,
-      atelier.date_heure,
-      atelier.salle,
-      r.nom,
-      r.prenom,
-      r.email,
-      r.telephone || '',
-      r.type,
-      r.valide ? 'Oui' : 'Non',
-      r.scanned ? 'Oui' : 'Non'
+      atelier.titre, atelier.intervenant, atelier.date_heure, atelier.salle,
+      r.nom, r.prenom, r.email, r.telephone || '', r.type,
+      r.valide ? 'Oui' : 'Non', r.scanned ? 'Oui' : 'Non'
     ])
     const csv = [header, ...rows].map(r => r.join(',')).join('\n')
-    // Ajout du BOM UTF-8 pour compatibilité Excel
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -211,8 +194,7 @@ export default function AdminAteliers() {
     })
     if (res.ok) {
       toast.success('Réservation validée et ticket envoyé !')
-      fetchInternalResas(openAtelierId)
-      handleOpenList(openAtelierId)
+      if (openListAtelierId) handleOpenList(openListAtelierId);
     } else {
       toast.error('Erreur lors de la validation')
     }
@@ -226,8 +208,7 @@ export default function AdminAteliers() {
     })
     if (res.ok) {
       toast.success('Réservation refusée')
-      fetchInternalResas(openAtelierId)
-      handleOpenList(openAtelierId)
+      if (openListAtelierId) handleOpenList(openListAtelierId);
     } else {
       toast.error('Erreur lors du refus')
     }
@@ -248,6 +229,7 @@ export default function AdminAteliers() {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: { xs: 1, sm: 3 } }}>
+      {/* ... Votre JSX ... */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
         <Link href="/admin" passHref legacyBehavior>
           <Button variant="outlined" component="a">Retour à l'admin</Button>
@@ -258,197 +240,52 @@ export default function AdminAteliers() {
       <Typography variant="h4" gutterBottom>Gestion des Ateliers</Typography>
 
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>Ajouter un atelier</Typography>
-        <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
-          <TextField
-            label="Titre"
-            value={newAtelier.titre}
-            onChange={(e) => setNewAtelier({ ...newAtelier, titre: e.target.value })}
-            fullWidth
-            required
-          />
-          <TextField
-            label="Intervenant"
-            value={newAtelier.intervenant}
-            onChange={(e) => setNewAtelier({ ...newAtelier, intervenant: e.target.value })}
-            fullWidth
-            required
-          />
-        </Stack>
-        <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
-          <TextField
-            label="Date et heure"
-            type="datetime-local"
-            value={newAtelier.date_heure}
-            onChange={(e) => setNewAtelier({ ...newAtelier, date_heure: e.target.value })}
-            fullWidth
-            required
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="Salle"
-            value={newAtelier.salle}
-            onChange={(e) => setNewAtelier({ ...newAtelier, salle: e.target.value })}
-            fullWidth
-            required
-          />
-          <TextField
-            label="Places"
-            type="number"
-            value={newAtelier.places}
-            onChange={(e) => setNewAtelier({ ...newAtelier, places: e.target.value })}
-            fullWidth
-            required
-          />
-        </Stack>
-        {addError && <Typography color="error" sx={{ mb: 2 }}>{addError}</Typography>}
-        {addSuccess && <Typography color="success.main" sx={{ mb: 2 }}>{addSuccess}</Typography>}
-        <Button variant="contained" color="primary" onClick={handleAdd} fullWidth={isMobile}>
-          Ajouter l'atelier
-        </Button>
+        {/* ... Votre formulaire d'ajout ... */}
       </Paper>
 
       <Typography variant="h6" gutterBottom>Liste des ateliers</Typography>
       <Stack spacing={2}>
-        {ateliers.map(atelier => (
-          <Paper key={atelier.id} sx={{ p: 2, mb: 2 }}>
-            <Stack spacing={1}>
-              <Typography variant="h6">{atelier.titre}</Typography>
-              <Typography><b>Intervenant :</b> {atelier.intervenant}</Typography>
-              <Typography><b>Date/Heure :</b> {new Date(atelier.date_heure).toLocaleString()}</Typography>
-              <Typography><b>Salle :</b> {atelier.salle}</Typography>
-              <Typography><b>Places :</b> {atelier.places}</Typography>
-              <Typography><b>Places restantes :</b> {atelier.places - (atelier.reservations_validated || 0)}</Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
-                <Button variant="outlined" color="primary" onClick={() => handleOpenInternal(atelier.id)} fullWidth={isMobile}>Réservations internes</Button>
-                <Button variant="outlined" color="secondary" onClick={() => handleOpenList(atelier.id)} startIcon={<ListIcon />} fullWidth={isMobile}>Liste inscrits</Button>
-                <Button variant="outlined" color="success" onClick={() => handleExport(atelier)} startIcon={<DownloadIcon />} fullWidth={isMobile}>Exporter</Button>
-                <Button variant={atelier.publie ? 'outlined' : 'contained'} color={atelier.publie ? 'warning' : 'success'} onClick={async () => { await supabase.from('ateliers').update({ publie: !atelier.publie }).eq('id', atelier.id); fetchAteliers(); }} fullWidth={isMobile}>{atelier.publie ? 'Cacher' : 'Publier'}</Button>
-                <Button variant="outlined" color="warning" onClick={() => handleOpenEdit(atelier)} startIcon={<EditIcon />} fullWidth={isMobile}>Modifier</Button>
-                <Button variant="outlined" color="error" onClick={() => handleDelete(atelier.id)} startIcon={<DeleteIcon />} fullWidth={isMobile}>Supprimer</Button>
-              </Stack>
-            </Stack>
-          </Paper>
-        ))}
+        {/* ... Votre liste d'ateliers ... */}
       </Stack>
 
       {/* Dialog Réservations internes */}
       <Dialog open={!!openAtelierId} onClose={() => setOpenAtelierId(null)} maxWidth="md" fullWidth>
-        <DialogTitle>Réservations internes</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>Ajouter une réservation interne</Typography>
-            <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
-              <TextField
-                label="Nom"
-                value={internalForm.nom}
-                onChange={(e) => setInternalForm({ ...internalForm, nom: e.target.value })}
-                fullWidth
-                required
-              />
-              <TextField
-                label="Prénom"
-                value={internalForm.prenom}
-                onChange={(e) => setInternalForm({ ...internalForm, prenom: e.target.value })}
-                fullWidth
-                required
-              />
-            </Stack>
-            <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
-              <TextField
-                label="Email"
-                type="email"
-                value={internalForm.email}
-                onChange={(e) => setInternalForm({ ...internalForm, email: e.target.value })}
-                fullWidth
-                required
-              />
-              <TextField
-                label="Téléphone"
-                value={internalForm.telephone}
-                onChange={(e) => setInternalForm({ ...internalForm, telephone: e.target.value })}
-                fullWidth
-                required
-              />
-            </Stack>
-            {internalError && <Typography color="error" sx={{ mb: 2 }}>{internalError}</Typography>}
-            <Button variant="contained" color="primary" onClick={handleAddInternal} fullWidth={isMobile}>
-              Ajouter
-            </Button>
-          </Box>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="h6" gutterBottom>Liste des réservations internes</Typography>
-          <List>
-            {internalResas.map(resa => (
-              <ListItem key={resa.id} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
-                <Box flex={1}>
-                  <Typography><b>Nom :</b> {resa.nom} {resa.prenom}</Typography>
-                  <Typography><b>Email :</b> {resa.email}</Typography>
-                  <Typography><b>Téléphone :</b> {resa.telephone}</Typography>
-                </Box>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: { xs: 1, sm: 0 } }}>
-                  <Button variant="contained" color="error" size="small" onClick={() => handleDelete(resa.id)} fullWidth={isMobile}>
-                    Supprimer
-                  </Button>
-                </Stack>
-              </ListItem>
-            ))}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenAtelierId(null)}>Fermer</Button>
-        </DialogActions>
+        {/* ... Votre Dialog de réservations internes ... */}
       </Dialog>
-
-      {/* Dialog Liste des inscrits */}
+      
+      {/* MODIFIÉ: Dialog Liste des inscrits (nettoyée) */}
       <Dialog open={!!openListAtelierId} onClose={() => setOpenListAtelierId(null)} maxWidth="md" fullWidth>
         <DialogTitle>Liste des inscrits</DialogTitle>
         <DialogContent>
           <List>
             {listResas.map(resa => (
               <ListItem key={resa.id} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
-                                 {/* Dialog Liste des inscrits */}
-      <Dialog open={!!openListAtelierId} onClose={() => setOpenListAtelierId(null)} maxWidth="md" fullWidth>
-        <DialogTitle>Liste des inscrits</DialogTitle>
-        <DialogContent>
-          {/* ... peut-être une List ici ... */}
-            {listResas.map(resa => (
-              <ListItem key={resa.id} /* ... */ >
-                <Box flex={1}>
-                  {/* ... Vos Typography pour le nom, email, etc. ... */}
-                  <Typography><b>Statut :</b> <span style={{ color: resa.valide ? 'green' : 'red' }}>{resa.valide ? 'Validé' : 'Non validé'}</span></Typography>
-                  {/* ... */}
-                </Box>
-                {/* C'EST ICI QU'IL MANQUE LES BOUTONS */}
-              </ListItem>
-            ))}
-          {/* ... */}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenListAtelierId(null)}>Fermer</Button>
-        </DialogActions>
-      </Dialog>
                 <Box flex={1}>
                   <Typography><b>Nom :</b> {resa.nom} {resa.prenom}</Typography>
                   <Typography><b>Email :</b> {resa.email}</Typography>
                   <Typography><b>Téléphone :</b> {resa.telephone}</Typography>
                   <Typography><b>Type :</b> {resa.type}</Typography>
-                  <Typography><b>Statut :</b> <span style={{ color: resa.valide ? 'green' : 'red' }}>{resa.valide ? 'Validé' : 'Non validé'}</span></Typography>
+                  <Typography>
+                    <b>Statut :</b>
+                    <span style={{ fontWeight: 'bold', color: (resa.statut === 'confirmé' || resa.valide) ? 'green' : 'orange' }}>
+                      {` ${resa.statut || (resa.valide ? 'confirmé' : 'en attente')}`}
+                    </span>
+                  </Typography>
                   <Typography><b>Scanné :</b> {resa.scanned ? '✓' : '✗'}</Typography>
                 </Box>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: { xs: 1, sm: 0 } }}>
-                  {!resa.valide && resa.type === 'externe' && (
+                  {(resa.statut === 'en attente' || resa.valide === false) && (
                     <>
                       <Button variant="contained" color="success" size="small" onClick={() => handleValidate(resa.id)} fullWidth={isMobile}>
                         Valider
                       </Button>
-                      <Button variant="contained" color="error" size="small" onClick={() => handleRefuse(resa.id)} fullWidth={isMobile}>
+                      <Button variant="outlined" color="error" size="small" onClick={() => handleRefuse(resa.id)} fullWidth={isMobile}>
                         Refuser
                       </Button>
                     </>
                   )}
-                  {resa.valide && (
-                    <Button variant="contained" color="info" size="small" onClick={() => handleResendTicket(resa.id)} fullWidth={isMobile}>
+                  {(resa.statut === 'confirmé' || resa.valide === true) && (
+                    <Button variant="outlined" color="info" size="small" onClick={() => handleResendTicket(resa.id)} fullWidth={isMobile}>
                       Renvoyer ticket
                     </Button>
                   )}
@@ -464,54 +301,7 @@ export default function AdminAteliers() {
 
       {/* Dialog Modification */}
       <Dialog open={!!editAtelier} onClose={() => setEditAtelier(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Modifier l'atelier</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 2 }}>
-            <TextField
-              label="Titre"
-              value={editForm.titre}
-              onChange={(e) => setEditForm({ ...editForm, titre: e.target.value })}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Intervenant"
-              value={editForm.intervenant}
-              onChange={(e) => setEditForm({ ...editForm, intervenant: e.target.value })}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Date et heure"
-              type="datetime-local"
-              value={editForm.date_heure}
-              onChange={(e) => setEditForm({ ...editForm, date_heure: e.target.value })}
-              fullWidth
-              required
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="Salle"
-              value={editForm.salle}
-              onChange={(e) => setEditForm({ ...editForm, salle: e.target.value })}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Places"
-              type="number"
-              value={editForm.places}
-              onChange={(e) => setEditForm({ ...editForm, places: e.target.value })}
-              fullWidth
-              required
-            />
-          </Stack>
-          {editError && <Typography color="error" sx={{ mt: 2 }}>{editError}</Typography>}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditAtelier(null)}>Annuler</Button>
-          <Button onClick={handleEdit} variant="contained" color="primary">Enregistrer</Button>
-        </DialogActions>
+        {/* ... Votre Dialog de modification ... */}
       </Dialog>
     </Box>
   )

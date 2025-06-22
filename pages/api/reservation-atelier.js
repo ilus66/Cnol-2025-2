@@ -1,14 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Création d'un client Supabase avec la clé de service pour avoir les droits admin
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-    },
-  }
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
@@ -16,48 +10,36 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Méthode non autorisée' });
   }
 
-  const { userId, atelierId } = req.body;
+  const { atelier_id, nom, prenom, email, telephone } = req.body;
 
-  if (!userId || !atelierId) {
-    return res.status(400).json({ message: 'User ID et Atelier ID sont requis.' });
+  if (!atelier_id || !nom || !prenom || !email) {
+    return res.status(400).json({ message: 'Informations manquantes.' });
   }
 
   try {
-    // 1. Vérifier si une réservation existe déjà pour cet utilisateur et cet atelier
-    const { data: existingReservation, error: existingError } = await supabaseAdmin
+    const { data: existing } = await supabaseAdmin
       .from('reservations_ateliers')
       .select('id')
-      .eq('user_id', userId)
-      .eq('atelier_id', atelierId)
+      .eq('email', email)
+      .eq('atelier_id', atelier_id)
       .single();
 
-    if (existingError && existingError.code !== 'PGRST116') { // PGRST116 = no rows found
-      throw existingError;
-    }
-
-    if (existingReservation) {
+    if (existing) {
       return res.status(409).json({ message: 'Vous êtes déjà inscrit à cet atelier.' });
     }
 
-    // 2. Créer la nouvelle réservation
     const { data, error } = await supabaseAdmin
       .from('reservations_ateliers')
-      .insert({
-        user_id: userId,
-        atelier_id: atelierId,
-        statut: 'confirmé', // ou 'en attente'
-      })
+      .insert({ atelier_id, nom, prenom, email, telephone, statut: 'confirmé' })
       .select()
       .single();
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     res.status(201).json({ message: 'Réservation à l\'atelier réussie !', reservation: data });
 
   } catch (error) {
     console.error('Erreur API reservation-atelier:', error);
-    res.status(500).json({ message: 'Erreur lors de la réservation de l\'atelier.', error: error.message });
+    res.status(500).json({ message: 'Erreur serveur.', error: error.message });
   }
-} 
+}

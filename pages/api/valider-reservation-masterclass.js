@@ -1,46 +1,46 @@
-import { supabase } from '../../lib/supabaseClient'
-import { generateTicket } from '../../lib/generateTicket'
-import { sendTicketMail } from '../../lib/mailer'
+import { createClient } from '@supabase/supabase-js';
+import { sendMail } from '../../../lib/mailer'; // Assurez-vous que le chemin est correct
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
-  const { id } = req.body
-  if (!id) return res.status(400).json({ message: 'ID manquant' })
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Méthode non autorisée' });
+  }
 
-  // Récupérer la réservation
-  const { data: resa, error } = await supabase.from('reservations_masterclass').select('*').eq('id', id).single()
-  if (error || !resa) return res.status(404).json({ message: 'Réservation introuvable' })
+  const { id } = req.body; // ID de la réservation
 
-  // Récupérer la masterclass
-  const { data: masterclass } = await supabase.from('masterclass').select('*').eq('id', resa.masterclass_id).single()
-  if (!masterclass) return res.status(404).json({ message: 'Masterclass introuvable' })
+  if (!id) {
+    return res.status(400).json({ message: 'ID de réservation manquant.' });
+  }
 
-  // Générer ticket PDF
-  const pdfBuffer = await generateTicket({
-    nom: resa.nom,
-    prenom: resa.prenom,
-    email: resa.email,
-    eventType: 'Masterclass',
-    eventTitle: masterclass.titre,
-    eventDate: masterclass.date_heure,
-    reservationId: String(resa.id),
-    salle: masterclass.salle,
-    intervenant: masterclass.intervenant
-  })
+  try {
+    // 1. Mettre à jour le statut de la réservation
+    const { data: reservation, error: updateError } = await supabaseAdmin
+      .from('reservations_masterclass')
+      .update({ statut: 'confirmé' })
+      .eq('id', id)
+      .select('*, masterclass(titre)')
+      .single();
 
-  // Envoyer mail avec ticket
-  await sendTicketMail({
-    to: resa.email,
-    nom: resa.nom,
-    prenom: resa.prenom,
-    eventType: 'Masterclass',
-    eventTitle: masterclass.titre,
-    eventDate: masterclass.date_heure,
-    pdfBuffer
-  })
+    if (updateError) throw updateError;
+    if (!reservation) throw new Error('Réservation non trouvée.');
 
-  // Marquer comme validé
-  await supabase.from('reservations_masterclass').update({ valide: true }).eq('id', id)
+    // 2. Envoyer un email de confirmation à l'utilisateur
+    await sendMail({
+      to: reservation.email,
+      subject: `✅ Confirmation de votre réservation pour la masterclass "${reservation.masterclass.titre}"`,
+      text: `Bonjour ${reservation.prenom},\n\nBonne nouvelle ! Votre réservation pour la masterclass "${reservation.masterclass.titre}" a été confirmée.\nNous avons hâte de vous y voir.\n\nCordialement,\nL'équipe CNOL 2025`,
+      html: `<p>Bonjour ${reservation.prenom},</p><p>Bonne nouvelle ! Votre réservation pour la masterclass "<strong>${reservation.masterclass.titre}</strong>" a été confirmée.</p><p>Nous avons hâte de vous y voir.</p><p>Cordialement,<br>L'équipe CNOL 2025</p>`,
+    });
 
-  return res.status(200).json({ success: true })
+    res.status(200).json({ message: 'Réservation validée avec succès.' });
+
+  } catch (error) {
+    console.error('Erreur API valider-reservation-masterclass:', error);
+    res.status(500).json({ message: 'Erreur lors de la validation.', error: error.message });
+  }
 } 

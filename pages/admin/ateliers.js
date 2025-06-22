@@ -199,7 +199,7 @@ export default function AdminAteliers() {
 
   const handleOpenList = async (atelierId) => {
     setOpenListAtelierId(atelierId)
-    const { data } = await supabase.from('reservations_ateliers').select('*').eq('atelier_id', atelierId)
+    const { data } = await supabase.from('reservations_ateliers').select('*').eq('atelier_id', atelierId).order('created_at', { ascending: false })
     setListResas(data || [])
   }
 
@@ -211,8 +211,7 @@ export default function AdminAteliers() {
     })
     if (res.ok) {
       toast.success('Réservation validée et ticket envoyé !')
-      fetchInternalResas(openAtelierId)
-      handleOpenList(openAtelierId)
+      if (openListAtelierId) handleOpenList(openListAtelierId);
     } else {
       toast.error('Erreur lors de la validation')
     }
@@ -226,8 +225,7 @@ export default function AdminAteliers() {
     })
     if (res.ok) {
       toast.success('Réservation refusée')
-      fetchInternalResas(openAtelierId)
-      handleOpenList(openAtelierId)
+      if (openListAtelierId) handleOpenList(openListAtelierId);
     } else {
       toast.error('Erreur lors du refus')
     }
@@ -401,40 +399,34 @@ export default function AdminAteliers() {
       </Dialog>
 
       {/* Dialog Liste des inscrits */}
-      <Dialog open={!!openListAtelierId} onClose={() => setOpenListAtelierId(null)} maxWidth="md" fullWidth>
+      <Dialog open={openListAtelierId !== null} onClose={() => setOpenListAtelierId(null)} fullWidth maxWidth="sm">
         <DialogTitle>Liste des inscrits</DialogTitle>
         <DialogContent>
-          <List>
-            {listResas.map(resa => (
-              <ListItem key={resa.id} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
-                <Box flex={1}>
-                  <Typography><b>Nom :</b> {resa.nom} {resa.prenom}</Typography>
-                  <Typography><b>Email :</b> {resa.email}</Typography>
-                  <Typography><b>Téléphone :</b> {resa.telephone}</Typography>
-                  <Typography><b>Type :</b> {resa.type}</Typography>
-                  <Typography><b>Statut :</b> <span style={{ color: resa.valide ? 'green' : 'red' }}>{resa.valide ? 'Validé' : 'Non validé'}</span></Typography>
-                  <Typography><b>Scanné :</b> {resa.scanned ? '✓' : '✗'}</Typography>
-                </Box>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: { xs: 1, sm: 0 } }}>
-                  {!resa.valide && resa.type === 'externe' && (
-                    <>
-                      <Button variant="contained" color="success" size="small" onClick={() => handleValidate(resa.id)} fullWidth={isMobile}>
-                        Valider
-                      </Button>
-                      <Button variant="contained" color="error" size="small" onClick={() => handleRefuse(resa.id)} fullWidth={isMobile}>
-                        Refuser
-                      </Button>
-                    </>
-                  )}
-                  {resa.valide && (
-                    <Button variant="contained" color="info" size="small" onClick={() => handleResendTicket(resa.id)} fullWidth={isMobile}>
-                      Renvoyer ticket
-                    </Button>
-                  )}
-                </Stack>
-              </ListItem>
-            ))}
-          </List>
+          {listResas.length === 0 ? (
+            <Typography>Aucun inscrit pour le moment.</Typography>
+          ) : (
+            <List>
+              {listResas.map(resa => (
+                <Paper key={resa.id} sx={{ mb: 2, p: 2, borderLeft: `5px solid ${resa.statut === 'confirmé' ? 'green' : (resa.statut === 'en attente' ? 'orange' : 'red')}` }}>
+                  <Typography variant="subtitle1">{resa.prenom} {resa.nom}</Typography>
+                  <Typography variant="body2" color="textSecondary">{resa.email}</Typography>
+                  <Typography variant="body2" color="textSecondary">{resa.telephone}</Typography>
+                  <Typography variant="body2" color="textSecondary">Statut : <strong>{resa.statut}</strong></Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    {resa.statut === 'en attente' && (
+                      <>
+                        <Button onClick={() => handleValidate(resa.id)} variant="contained" color="success" size="small">Valider</Button>
+                        <Button onClick={() => handleRefuse(resa.id)} variant="outlined" color="warning" size="small">Refuser</Button>
+                      </>
+                    )}
+                    <IconButton onClick={() => handleDelete(resa.id)} color="error" size="small">
+                      <DeleteIcon />
+                    </IconButton>
+                  </Stack>
+                </Paper>
+              ))}
+            </List>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenListAtelierId(null)}>Fermer</Button>

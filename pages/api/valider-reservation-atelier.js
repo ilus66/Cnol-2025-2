@@ -1,50 +1,44 @@
-import { supabase } from '../../lib/supabaseClient'
-import { generateTicket } from '../../lib/generateTicket'
-import { sendTicketMail } from '../../lib/mailer'
+import { createClient } from '@supabase/supabase-js';
+import { sendMail } from '../../../lib/mailer';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
-  const { id } = req.body
-  if (!id) return res.status(400).json({ message: 'ID manquant' })
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Méthode non autorisée' });
+  }
 
-  // Récupérer la réservation
-  const { data: resa, error } = await supabase.from('reservations_ateliers').select('*').eq('id', id).single()
-  if (error || !resa) return res.status(404).json({ message: 'Réservation introuvable' })
+  const { id } = req.body;
 
-  // Récupérer l'atelier
-  const { data: atelier } = await supabase.from('ateliers').select('*').eq('id', resa.atelier_id).single()
-  if (!atelier) return res.status(404).json({ message: 'Atelier introuvable' })
+  if (!id) {
+    return res.status(400).json({ message: 'ID de réservation manquant.' });
+  }
 
-  // DEBUG LOG
-  console.log('DEBUG RESA', resa);
-  console.log('DEBUG RESA.ID', resa?.id);
+  try {
+    const { data: reservation, error: updateError } = await supabaseAdmin
+      .from('reservations_ateliers')
+      .update({ statut: 'confirmé' })
+      .eq('id', id)
+      .select('*, ateliers(titre)')
+      .single();
 
-  // Générer ticket PDF
-  const pdfBuffer = await generateTicket({
-    nom: resa.nom,
-    prenom: resa.prenom,
-    email: resa.email,
-    eventType: 'Atelier',
-    eventTitle: atelier.titre,
-    eventDate: atelier.date_heure,
-    reservationId: String(resa.id),
-    salle: atelier.salle,
-    intervenant: atelier.intervenant
-  })
+    if (updateError) throw updateError;
+    if (!reservation) throw new Error('Réservation non trouvée.');
 
-  // Envoyer mail avec ticket
-  await sendTicketMail({
-    to: resa.email,
-    nom: resa.nom,
-    prenom: resa.prenom,
-    eventType: 'Atelier',
-    eventTitle: atelier.titre,
-    eventDate: atelier.date_heure,
-    pdfBuffer
-  })
+    await sendMail({
+      to: reservation.email,
+      subject: `✅ Confirmation de votre réservation pour l'atelier "${reservation.ateliers.titre}"`,
+      text: `Bonjour ${reservation.prenom},\n\nBonne nouvelle ! Votre réservation pour l'atelier "${reservation.ateliers.titre}" a été confirmée.\nNous avons hâte de vous y voir.\n\nCordialement,\nL'équipe CNOL 2025`,
+      html: `<p>Bonjour ${reservation.prenom},</p><p>Bonne nouvelle ! Votre réservation pour l'atelier "<strong>${reservation.ateliers.titre}</strong>" a été confirmée.</p><p>Nous avons hâte de vous y voir.</p><p>Cordialement,<br>L'équipe CNOL 2025</p>`,
+    });
 
-  // Marquer comme validé
-  await supabase.from('reservations_ateliers').update({ valide: true }).eq('id', id)
+    res.status(200).json({ message: 'Réservation validée avec succès.' });
 
-  return res.status(200).json({ success: true })
+  } catch (error) {
+    console.error('Erreur API valider-reservation-atelier:', error);
+    res.status(500).json({ message: 'Erreur lors de la validation.', error: error.message });
+  }
 } 

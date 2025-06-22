@@ -353,9 +353,9 @@ export default function MonEspace({ user }) {
                 <School sx={{ mr: 1, verticalAlign: 'middle' }} />
                 Mes Réservations Ateliers
               </Typography>
-              {user.reservations_ateliers && user.reservations_ateliers.length > 0 ? (
+              {user.reservations_ateliers && user.reservations_ateliers.filter(r => r.statut === 'confirmé').length > 0 ? (
                 <List>
-                  {user.reservations_ateliers.map((reservation) => (
+                  {user.reservations_ateliers.filter(r => r.statut === 'confirmé').map((reservation) => (
                     <ListItem key={reservation.id}>
                       <ListItemAvatar>
                         <Avatar>
@@ -368,15 +368,43 @@ export default function MonEspace({ user }) {
                       />
                       <Chip 
                         label={reservation.statut} 
-                        color={reservation.statut === 'confirmé' ? 'success' : 'warning'}
+                        color="success"
                         size="small"
+                        sx={{ mr: 1 }}
                       />
+                      <Button
+                        variant="outlined"
+                        startIcon={<Download />}
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/renvoyer-ticket-atelier', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: reservation.id })
+                            });
+                            if (!res.ok) throw new Error('Erreur lors de la génération du ticket');
+                            const blob = await res.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.setAttribute('download', `ticket-atelier-${reservation.id}.pdf`);
+                            document.body.appendChild(link);
+                            link.click();
+                            link.parentNode.removeChild(link);
+                            window.URL.revokeObjectURL(url);
+                          } catch (e) {
+                            alert('Erreur lors du téléchargement du ticket');
+                          }
+                        }}
+                      >
+                        Télécharger le ticket
+                      </Button>
                     </ListItem>
                   ))}
                 </List>
               ) : (
                 <Typography variant="body2" color="text.secondary">
-                  Aucune réservation d'atelier
+                  Aucun atelier validé
                 </Typography>
               )}
               {settings.ouverture_reservation_atelier && (
@@ -401,9 +429,9 @@ export default function MonEspace({ user }) {
                 <School sx={{ mr: 1, verticalAlign: 'middle' }} />
                 Mes Réservations Masterclass
               </Typography>
-              {user.reservations_masterclass && user.reservations_masterclass.length > 0 ? (
+              {user.reservations_masterclass && user.reservations_masterclass.filter(r => r.statut === 'confirmé').length > 0 ? (
                 <List>
-                  {user.reservations_masterclass.map((reservation) => (
+                  {user.reservations_masterclass.filter(r => r.statut === 'confirmé').map((reservation) => (
                     <ListItem key={reservation.id}>
                       <ListItemAvatar>
                         <Avatar>
@@ -416,15 +444,43 @@ export default function MonEspace({ user }) {
                       />
                       <Chip 
                         label={reservation.statut} 
-                        color={reservation.statut === 'confirmé' ? 'success' : 'warning'}
+                        color="success"
                         size="small"
+                        sx={{ mr: 1 }}
                       />
+                      <Button
+                        variant="outlined"
+                        startIcon={<Download />}
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/renvoyer-ticket-masterclass', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: reservation.id })
+                            });
+                            if (!res.ok) throw new Error('Erreur lors de la génération du ticket');
+                            const blob = await res.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.setAttribute('download', `ticket-masterclass-${reservation.id}.pdf`);
+                            document.body.appendChild(link);
+                            link.click();
+                            link.parentNode.removeChild(link);
+                            window.URL.revokeObjectURL(url);
+                          } catch (e) {
+                            alert('Erreur lors du téléchargement du ticket');
+                          }
+                        }}
+                      >
+                        Télécharger le ticket
+                      </Button>
                     </ListItem>
                   ))}
                 </List>
               ) : (
                 <Typography variant="body2" color="text.secondary">
-                  Aucune réservation de masterclass
+                  Aucune masterclass validée
                 </Typography>
               )}
               {settings.ouverture_reservation_masterclass && (

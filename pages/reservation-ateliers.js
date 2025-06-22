@@ -84,14 +84,10 @@ export default function ReservationAteliers({ user }) {
     const response = await fetch('/api/reservation-atelier', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        atelier_id: atelierId,
-        nom: user.nom,
-        prenom: user.prenom,
-        email: user.email,
-        telephone: user.telephone,
-        type: 'interne' // Réservation pour utilisateur connecté
-      })
+         body: JSON.stringify({
+      userId: user.id,
+      atelierId: atelierId
+    })
     });
 
     const data = await response.json();

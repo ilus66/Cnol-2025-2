@@ -407,6 +407,27 @@ export default function AdminAteliers() {
           <List>
             {listResas.map(resa => (
               <ListItem key={resa.id} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
+                                 {/* Dialog Liste des inscrits */}
+      <Dialog open={!!openListAtelierId} onClose={() => setOpenListAtelierId(null)} maxWidth="md" fullWidth>
+        <DialogTitle>Liste des inscrits</DialogTitle>
+        <DialogContent>
+          {/* ... peut-être une List ici ... */}
+            {listResas.map(resa => (
+              <ListItem key={resa.id} /* ... */ >
+                <Box flex={1}>
+                  {/* ... Vos Typography pour le nom, email, etc. ... */}
+                  <Typography><b>Statut :</b> <span style={{ color: resa.valide ? 'green' : 'red' }}>{resa.valide ? 'Validé' : 'Non validé'}</span></Typography>
+                  {/* ... */}
+                </Box>
+                {/* C'EST ICI QU'IL MANQUE LES BOUTONS */}
+              </ListItem>
+            ))}
+          {/* ... */}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenListAtelierId(null)}>Fermer</Button>
+        </DialogActions>
+      </Dialog>
                 <Box flex={1}>
                   <Typography><b>Nom :</b> {resa.nom} {resa.prenom}</Typography>
                   <Typography><b>Email :</b> {resa.email}</Typography>

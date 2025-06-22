@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { sendMail } from '../../../lib/mailer';
+import { sendMail } from '../../lib/mailer';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

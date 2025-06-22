@@ -391,7 +391,7 @@ export default function MonEspace({ user }) {
         </Grid>
 
         {/* Section Ateliers */}
-        {isAllowedForWorkshops && settings.ateliers_actifs && (
+        {isAllowedForWorkshops && user.valide && (
           <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, mb: 3 }}>
             <Stack direction="row" alignItems="center" spacing={1} mb={2}>
               <School />
@@ -440,16 +440,18 @@ export default function MonEspace({ user }) {
               <Alert severity="info" sx={{ mt: 2 }}>Vous n'avez aucune réservation d'atelier confirmée.</Alert>
             )}
             
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-              <Button variant="contained" component={Link} href="/ateliers">
-                Réserver un atelier
-              </Button>
-            </Box>
+            {settings.ateliers_actifs && (
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                <Button variant="contained" component={Link} href="/ateliers">
+                  Réserver un atelier
+                </Button>
+              </Box>
+            )}
           </Paper>
         )}
 
         {/* Section Masterclass */}
-        {isAllowedForWorkshops && settings.masterclass_actifs && (
+        {isAllowedForWorkshops && user.valide && (
            <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, mb: 3 }}>
               <Stack direction="row" alignItems="center" spacing={1} mb={2}>
                   <EmojiEvents />
@@ -497,11 +499,14 @@ export default function MonEspace({ user }) {
               ) : (
                   <Alert severity="info" sx={{ mt: 2 }}>Vous n'avez aucune réservation de masterclass confirmée.</Alert>
               )}
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                  <Button variant="contained" component={Link} href="/masterclass">
-                      Réserver une masterclass
-                  </Button>
-              </Box>
+              
+              {settings.masterclass_actifs && (
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                    <Button variant="contained" component={Link} href="/masterclass">
+                        Réserver une masterclass
+                    </Button>
+                </Box>
+              )}
            </Paper>
         )}
 

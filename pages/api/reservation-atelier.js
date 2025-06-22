@@ -11,14 +11,43 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Méthode non autorisée' });
   }
 
-  const { atelier_id, nom, prenom, email, telephone } = req.body;
-
-  if (!atelier_id || !nom || !prenom || !email) {
-    return res.status(400).json({ message: 'Informations manquantes.' });
+  // 1. Vérifier l'authentification et la validité de l'utilisateur
+  const sessionCookie = req.cookies['cnol-session'];
+  if (!sessionCookie) {
+    return res.status(401).json({ message: 'Vous devez être connecté pour réserver.' });
   }
 
   try {
-    // 1. Vérifier si une réservation existe déjà
+    const sessionData = JSON.parse(decodeURIComponent(sessionCookie));
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('inscription')
+      .select('id, valide, fonction')
+      .eq('id', sessionData.id)
+      .single();
+
+    if (userError || !userData) {
+      return res.status(401).json({ message: 'Session invalide ou utilisateur introuvable.' });
+    }
+
+    if (!userData.valide) {
+      return res.status(403).json({ message: 'Votre compte doit être validé par un administrateur pour pouvoir réserver.' });
+    }
+    
+    const isAllowed = userData.fonction === 'Opticien' || userData.fonction === 'Ophtalmologue';
+    if (!isAllowed) {
+      return res.status(403).json({ message: 'Vous n\'avez pas les droits pour réserver un atelier.' });
+    }
+
+    // 2. Continuer avec la logique de réservation
+    const { atelier_id } = req.body;
+    if (!atelier_id) {
+      return res.status(400).json({ message: 'ID de l\'atelier manquant.' });
+    }
+
+    // L'email et autres infos sont récupérées depuis la session pour plus de sécurité
+    const { email, nom, prenom } = userData;
+
+    // 3. Vérifier si une réservation existe déjà
     const { data: existing } = await supabaseAdmin
       .from('reservations_ateliers')
       .select('id')
@@ -30,7 +59,7 @@ export default async function handler(req, res) {
       return res.status(409).json({ message: 'Vous êtes déjà inscrit à cet atelier.' });
     }
 
-    // 2. Récupérer les détails de l'atelier pour l'email
+    // 4. Récupérer les détails de l'atelier pour l'email
     const { data: atelier, error: atelierError } = await supabaseAdmin
       .from('ateliers')
       .select('titre')
@@ -39,16 +68,16 @@ export default async function handler(req, res) {
 
     if (atelierError) throw new Error('Impossible de récupérer les détails de l\'atelier.');
 
-    // 3. Insérer la nouvelle réservation avec le statut 'en attente'
+    // 5. Insérer la nouvelle réservation avec le statut 'en attente'
     const { data, error } = await supabaseAdmin
       .from('reservations_ateliers')
-      .insert({ atelier_id, nom, prenom, email, telephone, statut: 'en attente' })
+      .insert({ atelier_id, nom, prenom, email, statut: 'en attente' })
       .select()
       .single();
 
     if (error) throw error;
     
-    // 4. Envoyer les emails de notification
+    // 6. Envoyer les emails de notification
     // Email à l'utilisateur
     await sendMail({
       to: email,

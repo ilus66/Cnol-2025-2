@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { sendMail } from '../../lib/mailer';
+import { sendTicketMail } from '../../lib/mailer';
+import { generateTicket } from '../../lib/generateTicket';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,27 +19,45 @@ export default async function handler(req, res) {
   }
 
   try {
+    // 1. Valider la réservation
     const { data: reservation, error: updateError } = await supabaseAdmin
       .from('reservations_ateliers')
       .update({ statut: 'confirmé' })
       .eq('id', id)
-      .select('*, ateliers(titre)')
+      .select('*, ateliers(*)')
       .single();
 
     if (updateError) throw updateError;
     if (!reservation) throw new Error('Réservation non trouvée.');
 
-    await sendMail({
-      to: reservation.email,
-      subject: `✅ Confirmation de votre réservation pour l'atelier "${reservation.ateliers.titre}"`,
-      text: `Bonjour ${reservation.prenom},\n\nBonne nouvelle ! Votre réservation pour l'atelier "${reservation.ateliers.titre}" a été confirmée.\nNous avons hâte de vous y voir.\n\nCordialement,\nL'équipe CNOL 2025`,
-      html: `<p>Bonjour ${reservation.prenom},</p><p>Bonne nouvelle ! Votre réservation pour l'atelier "<strong>${reservation.ateliers.titre}</strong>" a été confirmée.</p><p>Nous avons hâte de vous y voir.</p><p>Cordialement,<br>L'équipe CNOL 2025</p>`,
+    // 2. Générer le ticket PDF
+    const pdfBuffer = await generateTicket({
+      nom: reservation.nom,
+      prenom: reservation.prenom,
+      email: reservation.email,
+      eventType: 'Atelier',
+      eventTitle: reservation.ateliers.titre,
+      eventDate: reservation.ateliers.date_heure,
+      reservationId: String(reservation.id),
+      salle: reservation.ateliers.salle,
+      intervenant: reservation.ateliers.intervenant
     });
 
-    res.status(200).json({ message: 'Réservation validée avec succès.' });
+    // 3. Envoyer le mail avec le ticket en pièce jointe
+    await sendTicketMail({
+      to: reservation.email,
+      nom: reservation.nom,
+      prenom: reservation.prenom,
+      eventType: 'Atelier',
+      eventTitle: reservation.ateliers.titre,
+      eventDate: reservation.ateliers.date_heure,
+      pdfBuffer
+    });
+
+    res.status(200).json({ message: 'Réservation validée et ticket envoyé avec succès.' });
 
   } catch (error) {
     console.error('Erreur API valider-reservation-atelier:', error);
     res.status(500).json({ message: 'Erreur lors de la validation.', error: error.message });
   }
-} 
+}

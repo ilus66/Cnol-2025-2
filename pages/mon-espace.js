@@ -114,7 +114,17 @@ export const getServerSideProps = async ({ req }) => {
         console.error("Erreur de récupération des réservations:", ateliersError, masterclassError);
     }
     
-    // 4. Combiner les données et les passer au composant
+    // 4. Récupérer les paramètres globaux
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('settings')
+      .select('*')
+      .single();
+
+    if (settingsError) {
+        console.error("Erreur de récupération des paramètres:", settingsError);
+    }
+
+    // 5. Combiner les données et les passer au composant
     const userWithReservations = {
       ...userData,
       reservations_ateliers: ateliersData || [],
@@ -124,6 +134,7 @@ export const getServerSideProps = async ({ req }) => {
     return {
       props: {
         user: userWithReservations,
+        settings: settingsData || {},
       },
     };
   } catch (error) {
@@ -137,11 +148,10 @@ export const getServerSideProps = async ({ req }) => {
   }
 };
 
-export default function MonEspace({ user }) {
+export default function MonEspace({ user, settings }) {
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [contacts, setContacts] = useState([]);
-  const [settings, setSettings] = useState({});
 
   // Détermine si l'utilisateur a le droit de voir les ateliers/masterclass
   const isAllowedForWorkshops = user && (user.fonction === 'Opticien' || user.fonction === 'Ophtalmologue');
@@ -151,13 +161,6 @@ export default function MonEspace({ user }) {
     if ('Notification' in window) {
       setNotificationsEnabled(Notification.permission === 'granted');
     }
-
-    // Charger les paramètres
-    const fetchSettings = async () => {
-      const { data } = await supabase.from('settings').select('*').single();
-      if (data) setSettings(data);
-    };
-    fetchSettings();
 
     // Charger les contacts collectés
     const fetchContacts = async () => {

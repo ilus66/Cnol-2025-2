@@ -401,14 +401,7 @@ export default function MonEspace({ user }) {
                         onClick={async () => {
                           const toastId = toast.loading('Génération du ticket...');
                           try {
-                            const res = await fetch('/api/renvoyer-ticket-atelier', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ 
-                                id: reservation.id,
-                                download: true // Indiquer qu'on veut télécharger
-                              })
-                            });
+                            const res = await fetch(`/api/download-ticket-atelier?id=${reservation.id}`);
                             if (!res.ok) {
                               const errorData = await res.json();
                               throw new Error(errorData.message || 'Erreur lors de la génération du ticket');
@@ -487,14 +480,7 @@ export default function MonEspace({ user }) {
                         onClick={async () => {
                           const toastId = toast.loading('Génération du ticket...');
                           try {
-                            const res = await fetch('/api/renvoyer-ticket-masterclass', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ 
-                                id: reservation.id,
-                                download: true // Indiquer qu'on veut télécharger
-                              })
-                            });
+                            const res = await fetch(`/api/download-ticket-masterclass?id=${reservation.id}`);
                             if (!res.ok) {
                               const errorData = await res.json();
                               throw new Error(errorData.message || 'Erreur lors de la génération du ticket');

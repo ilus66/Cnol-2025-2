@@ -60,11 +60,11 @@ export default function ReservationAteliers({ user }) {
 
     const { data: reservationsData } = await supabase
       .from('reservations_ateliers')
-      .select('atelier_id')
+      .select('atelier_id, statut')
       .eq('email', user.email);
       
     if (ateliersData) setAteliers(ateliersData);
-    if (reservationsData) setReservations(reservationsData.map(r => r.atelier_id));
+    if (reservationsData) setReservations(reservationsData);
     setLoading(false);
   };
 
@@ -85,7 +85,7 @@ export default function ReservationAteliers({ user }) {
 
     const data = await response.json();
     if (response.ok) {
-      toast.success(data.message || 'Réservation confirmée !', { id: toastId });
+      toast.success(data.message || 'Demande de réservation envoyée !', { id: toastId });
       fetchData();
     } else {
       toast.error(data.message || 'Erreur lors de la réservation.', { id: toastId });
@@ -113,12 +113,30 @@ export default function ReservationAteliers({ user }) {
       </Paper>
       <List>
         {ateliers.map((atelier) => {
-          const isReserved = reservations.includes(atelier.id);
+          const reservation = reservations.find(r => r.atelier_id === atelier.id);
           const placesPrises = atelier.reservations_ateliers[0]?.count || 0;
           const isFull = placesPrises >= atelier.capacite;
 
+          let buttonText = 'Réserver';
+          let buttonColor = 'primary';
+          let buttonDisabled = isFull;
+
+          if (reservation) {
+            if (reservation.statut === 'confirmé') {
+              buttonText = 'Confirmé';
+              buttonColor = 'success';
+              buttonDisabled = true;
+            } else if (reservation.statut === 'en attente') {
+              buttonText = 'En attente';
+              buttonColor = 'warning';
+              buttonDisabled = true;
+            }
+          } else if (isFull) {
+            buttonText = 'Complet';
+          }
+
           return (
-            <ListItem key={atelier.id} divider sx={{ opacity: (isFull && !isReserved) ? 0.6 : 1 }}>
+            <ListItem key={atelier.id} divider sx={{ opacity: (isFull && !reservation) ? 0.6 : 1 }}>
               <ListItemText
                 primary={`${atelier.titre} — ${atelier.intervenant}`}
                 secondary={
@@ -134,10 +152,10 @@ export default function ReservationAteliers({ user }) {
               <Button
                 variant="contained"
                 onClick={() => handleReserver(atelier.id)}
-                disabled={isFull || isReserved}
-                color={isReserved ? "success" : "primary"}
+                disabled={buttonDisabled}
+                color={buttonColor}
               >
-                {isReserved ? 'Déjà Réservé' : (isFull ? 'Complet' : 'Réserver')}
+                {buttonText}
               </Button>
             </ListItem>
           );

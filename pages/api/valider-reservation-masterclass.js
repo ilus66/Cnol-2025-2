@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { sendMail } from '../../lib/mailer'; // Assurez-vous que le chemin est correct
+import { sendTicketMail } from '../../lib/mailer';
+import { generateTicket } from '../../lib/generateTicket';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -23,24 +24,40 @@ export default async function handler(req, res) {
       .from('reservations_masterclass')
       .update({ statut: 'confirmé' })
       .eq('id', id)
-      .select('*, masterclass(titre)')
+      .select('*, masterclass(*)')
       .single();
 
     if (updateError) throw updateError;
     if (!reservation) throw new Error('Réservation non trouvée.');
 
-    // 2. Envoyer un email de confirmation à l'utilisateur
-    await sendMail({
-      to: reservation.email,
-      subject: `✅ Confirmation de votre réservation pour la masterclass "${reservation.masterclass.titre}"`,
-      text: `Bonjour ${reservation.prenom},\n\nBonne nouvelle ! Votre réservation pour la masterclass "${reservation.masterclass.titre}" a été confirmée.\nNous avons hâte de vous y voir.\n\nCordialement,\nL'équipe CNOL 2025`,
-      html: `<p>Bonjour ${reservation.prenom},</p><p>Bonne nouvelle ! Votre réservation pour la masterclass "<strong>${reservation.masterclass.titre}</strong>" a été confirmée.</p><p>Nous avons hâte de vous y voir.</p><p>Cordialement,<br>L'équipe CNOL 2025</p>`,
+    // 2. Générer le ticket PDF
+    const pdfBuffer = await generateTicket({
+      nom: reservation.nom,
+      prenom: reservation.prenom,
+      email: reservation.email,
+      eventType: 'Masterclass',
+      eventTitle: reservation.masterclass.titre,
+      eventDate: reservation.masterclass.date_heure,
+      reservationId: String(reservation.id),
+      salle: reservation.masterclass.salle,
+      intervenant: reservation.masterclass.intervenant
     });
 
-    res.status(200).json({ message: 'Réservation validée avec succès.' });
+    // 3. Envoyer le mail avec le ticket en pièce jointe
+    await sendTicketMail({
+      to: reservation.email,
+      nom: reservation.nom,
+      prenom: reservation.prenom,
+      eventType: 'Masterclass',
+      eventTitle: reservation.masterclass.titre,
+      eventDate: reservation.masterclass.date_heure,
+      pdfBuffer
+    });
+
+    res.status(200).json({ message: 'Réservation validée et ticket envoyé avec succès.' });
 
   } catch (error) {
     console.error('Erreur API valider-reservation-masterclass:', error);
     res.status(500).json({ message: 'Erreur lors de la validation.', error: error.message });
   }
-} 
+}

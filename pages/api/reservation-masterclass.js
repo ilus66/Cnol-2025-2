@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     // 3. Insérer la nouvelle réservation avec le statut 'en attente'
     const { data, error } = await supabaseAdmin
       .from('reservations_masterclass')
-      .insert({ masterclass_id, nom, prenom, email, telephone, statut: 'en attente' })
+      .insert({ masterclass_id, nom, prenom, email, telephone, statut: 'en attente', type: 'externe', })
       .select()
       .single();
 

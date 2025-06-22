@@ -42,10 +42,10 @@ export default function AdminAteliers() {
   const [editError, setEditError] = useState('')
   const [openListAtelierId, setOpenListAtelierId] = useState(null)
   const [listResas, setListResas] = useState([])
-  const [loadingResas, setLoadingResas] = useState(false); // AJOUT
   const [addError, setAddError] = useState('')
   const [addSuccess, setAddSuccess] = useState('')
 
+  // Détection mobile
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
 
   useEffect(() => {
@@ -101,6 +101,7 @@ export default function AdminAteliers() {
       return
     }
 
+    // NOUVELLE LOGIQUE : Insertion directe en base de données
     const { data: user } = await supabase
       .from('inscription')
       .select('id, nom, prenom, email, telephone, participant_type')
@@ -116,9 +117,9 @@ export default function AdminAteliers() {
       .from('reservations_ateliers')
       .insert({
         atelier_id: openAtelierId,
-        participant_id: user.id,
+        participant_id: user.id, // Utiliser l'id de l'utilisateur trouvé
         type: user.participant_type === 'exposant' || user.participant_type === 'intervenant' || user.participant_type === 'vip' || user.participant_type === 'organisation' ? 'interne' : 'externe',
-        valide: true,
+        valide: true, // Les inscriptions internes sont validées d'office
         nom: user.nom,
         prenom: user.prenom,
         email: user.email,
@@ -163,10 +164,12 @@ export default function AdminAteliers() {
   }
 
   const handleExport = async (atelier) => {
+    // Récupérer toutes les réservations pour cet atelier
     const { data: resas } = await supabase
       .from('reservations_ateliers')
       .select('*')
       .eq('atelier_id', atelier.id)
+    // Générer le CSV
     const header = [
       'Titre atelier', 'Intervenant', 'Jour/heure', 'Salle', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Type', 'Validé', 'Scanné'
     ]
@@ -184,6 +187,7 @@ export default function AdminAteliers() {
       r.scanned ? 'Oui' : 'Non'
     ])
     const csv = [header, ...rows].map(r => r.join(',')).join('\n')
+    // Ajout du BOM UTF-8 pour compatibilité Excel
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -193,23 +197,10 @@ export default function AdminAteliers() {
     URL.revokeObjectURL(url)
   }
 
-  // MODIFIÉ: Utilisation de l'API sécurisée
   const handleOpenList = async (atelierId) => {
-    setOpenListAtelierId(atelierId);
-    setLoadingResas(true);
-    setListResas([]);
-    try {
-        const response = await fetch(`/api/admin/list-reservations?atelier_id=${atelierId}`);
-        const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.message || "Erreur de l'API");
-        }
-        setListResas(data);
-    } catch (err) {
-        toast.error(`Erreur chargement inscrits: ${err.message}`);
-    } finally {
-        setLoadingResas(false);
-    }
+    setOpenListAtelierId(atelierId)
+    const { data } = await supabase.from('reservations_ateliers').select('*').eq('atelier_id', atelierId)
+    setListResas(data || [])
   }
 
   const handleValidate = async (resaId) => {
@@ -220,7 +211,8 @@ export default function AdminAteliers() {
     })
     if (res.ok) {
       toast.success('Réservation validée et ticket envoyé !')
-      if (openListAtelierId) handleOpenList(openListAtelierId); // MODIFIÉ: Rafraîchissement
+      fetchInternalResas(openAtelierId)
+      handleOpenList(openAtelierId)
     } else {
       toast.error('Erreur lors de la validation')
     }
@@ -234,7 +226,8 @@ export default function AdminAteliers() {
     })
     if (res.ok) {
       toast.success('Réservation refusée')
-      if (openListAtelierId) handleOpenList(openListAtelierId); // MODIFIÉ: Rafraîchissement
+      fetchInternalResas(openAtelierId)
+      handleOpenList(openAtelierId)
     } else {
       toast.error('Erreur lors du refus')
     }
@@ -406,51 +399,42 @@ export default function AdminAteliers() {
           <Button onClick={() => setOpenAtelierId(null)}>Fermer</Button>
         </DialogActions>
       </Dialog>
-      
-      {/* MODIFIÉ: Dialog Liste des inscrits */}
+
+      {/* Dialog Liste des inscrits */}
       <Dialog open={!!openListAtelierId} onClose={() => setOpenListAtelierId(null)} maxWidth="md" fullWidth>
         <DialogTitle>Liste des inscrits</DialogTitle>
         <DialogContent>
-          {loadingResas ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
-          ) : listResas.length === 0 ? (
-            <Typography sx={{ p: 2 }}>Aucun inscrit pour le moment.</Typography>
-          ) : (
-            <List>
-              {listResas.map(resa => (
-                <ListItem key={resa.id} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
-                  <Box flex={1}>
-                    <Typography><b>Nom :</b> {resa.nom} {resa.prenom}</Typography>
-                    <Typography><b>Email :</b> {resa.email}</Typography>
-                    <Typography><b>Téléphone :</b> {resa.telephone}</Typography>
-                    <Typography>
-                      <b>Statut :</b>
-                      <span style={{ fontWeight: 'bold', color: resa.statut === 'confirmé' ? 'green' : 'orange' }}>
-                        {` ${resa.statut}`}
-                      </span>
-                    </Typography>
-                  </Box>
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: { xs: 1, sm: 0 } }}>
-                    {resa.statut === 'en attente' && (
-                      <>
-                        <Button variant="contained" color="success" size="small" onClick={() => handleValidate(resa.id)} fullWidth={isMobile}>
-                          Valider
-                        </Button>
-                        <Button variant="outlined" color="error" size="small" onClick={() => handleRefuse(resa.id)} fullWidth={isMobile}>
-                          Refuser
-                        </Button>
-                      </>
-                    )}
-                    {resa.statut === 'confirmé' && (
-                      <Button variant="outlined" color="info" size="small" onClick={() => handleResendTicket(resa.id)} fullWidth={isMobile}>
-                        Renvoyer ticket
+          <List>
+            {listResas.map(resa => (
+              <ListItem key={resa.id} sx={{ flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' } }}>
+                <Box flex={1}>
+                  <Typography><b>Nom :</b> {resa.nom} {resa.prenom}</Typography>
+                  <Typography><b>Email :</b> {resa.email}</Typography>
+                  <Typography><b>Téléphone :</b> {resa.telephone}</Typography>
+                  <Typography><b>Type :</b> {resa.type}</Typography>
+                  <Typography><b>Statut :</b> <span style={{ color: resa.valide ? 'green' : 'red' }}>{resa.valide ? 'Validé' : 'Non validé'}</span></Typography>
+                  <Typography><b>Scanné :</b> {resa.scanned ? '✓' : '✗'}</Typography>
+                </Box>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: { xs: 1, sm: 0 } }}>
+                  {!resa.valide && resa.type === 'externe' && (
+                    <>
+                      <Button variant="contained" color="success" size="small" onClick={() => handleValidate(resa.id)} fullWidth={isMobile}>
+                        Valider
                       </Button>
-                    )}
-                  </Stack>
-                </ListItem>
-              ))}
-            </List>
-          )}
+                      <Button variant="contained" color="error" size="small" onClick={() => handleRefuse(resa.id)} fullWidth={isMobile}>
+                        Refuser
+                      </Button>
+                    </>
+                  )}
+                  {resa.valide && (
+                    <Button variant="contained" color="info" size="small" onClick={() => handleResendTicket(resa.id)} fullWidth={isMobile}>
+                      Renvoyer ticket
+                    </Button>
+                  )}
+                </Stack>
+              </ListItem>
+            ))}
+          </List>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenListAtelierId(null)}>Fermer</Button>

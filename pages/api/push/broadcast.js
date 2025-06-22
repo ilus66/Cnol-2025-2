@@ -34,18 +34,39 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Méthode non autorisée' });
   }
   
-  // TODO: Sécuriser cette route pour qu'elle ne soit accessible qu'aux administrateurs
-  
-  const { title, body, url } = req.body;
-  if (!title || !body) {
-    return res.status(400).json({ message: 'Le titre et le corps du message sont requis.' });
-  }
-  
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-    return res.status(500).json({ message: 'Les clés VAPID ne sont pas configurées sur le serveur.' });
-  }
-
   try {
+    // 1. Vérifier l'authentification de l'admin via le cookie de session
+    const sessionCookie = req.cookies['cnol-session'];
+    if (!sessionCookie) {
+      return res.status(401).json({ message: 'Authentification requise.' });
+    }
+    
+    const sessionData = JSON.parse(decodeURIComponent(sessionCookie));
+    if (!sessionData || !sessionData.id) {
+      return res.status(401).json({ message: 'Session invalide.' });
+    }
+
+    // 2. Vérifier le rôle de l'utilisateur
+    const { data: adminData, error: adminError } = await supabaseAdmin
+      .from('inscription')
+      .select('role')
+      .eq('id', sessionData.id)
+      .single();
+
+    if (adminError || !adminData || adminData.role !== 'admin') {
+      return res.status(403).json({ message: 'Accès interdit. Seuls les administrateurs peuvent envoyer des notifications.' });
+    }
+    
+    // 3. Procéder si l'utilisateur est bien un admin
+    const { title, body, url } = req.body;
+    if (!title || !body) {
+      return res.status(400).json({ message: 'Le titre et le corps du message sont requis.' });
+    }
+    
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      return res.status(500).json({ message: 'Les clés VAPID ne sont pas configurées sur le serveur.' });
+    }
+
     // Récupérer TOUS les abonnements push en utilisant le client admin
     const { data: subs, error } = await supabaseAdmin
       .from('push_subscriptions')

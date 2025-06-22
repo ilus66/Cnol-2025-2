@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "pages/api/**/*.js": {
+      "includeFiles": "public/images/logo-cnol.png"
+    }
+  },
   "env": {
     "SMTP_HOST": "mail.cnol.ma",
     "SMTP_PORT": "465",

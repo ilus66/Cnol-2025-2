@@ -387,10 +387,10 @@ export default function MonEspace({ user }) {
                       </ListItemAvatar>
                       <ListItemText
                         primary={reservation.ateliers?.titre}
-                        secondary={`${reservation.ateliers?.date} - ${reservation.ateliers?.heure}`}
+                        secondary={new Date(reservation.ateliers?.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
                       />
                       <Chip 
-                        label={reservation.statut} 
+                        label="confirmé" 
                         color="success"
                         size="small"
                         sx={{ mr: 1 }}
@@ -399,24 +399,34 @@ export default function MonEspace({ user }) {
                         variant="outlined"
                         startIcon={<Download />}
                         onClick={async () => {
+                          const toastId = toast.loading('Génération du ticket...');
                           try {
                             const res = await fetch('/api/renvoyer-ticket-atelier', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: reservation.id })
+                              body: JSON.stringify({ 
+                                id: reservation.id,
+                                download: true // Indiquer qu'on veut télécharger
+                              })
                             });
-                            if (!res.ok) throw new Error('Erreur lors de la génération du ticket');
+                            if (!res.ok) {
+                              const errorData = await res.json();
+                              throw new Error(errorData.message || 'Erreur lors de la génération du ticket');
+                            }
                             const blob = await res.blob();
                             const url = window.URL.createObjectURL(blob);
                             const link = document.createElement('a');
                             link.href = url;
-                            link.setAttribute('download', `ticket-atelier-${reservation.id}.pdf`);
+                            const titreSafe = reservation.ateliers?.titre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                            link.setAttribute('download', `ticket-atelier-${titreSafe}.pdf`);
                             document.body.appendChild(link);
                             link.click();
                             link.parentNode.removeChild(link);
                             window.URL.revokeObjectURL(url);
+                            toast.success('Ticket téléchargé !', { id: toastId });
                           } catch (e) {
-                            alert('Erreur lors du téléchargement du ticket');
+                            console.error("Erreur téléchargement ticket:", e);
+                            toast.error(`Erreur: ${e.message}`, { id: toastId });
                           }
                         }}
                       >
@@ -463,10 +473,10 @@ export default function MonEspace({ user }) {
                       </ListItemAvatar>
                       <ListItemText
                         primary={reservation.masterclasses?.titre}
-                        secondary={`${reservation.masterclasses?.date} - ${reservation.masterclasses?.heure}`}
+                        secondary={new Date(reservation.masterclasses?.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
                       />
                       <Chip 
-                        label={reservation.statut} 
+                        label="confirmé" 
                         color="success"
                         size="small"
                         sx={{ mr: 1 }}
@@ -475,24 +485,34 @@ export default function MonEspace({ user }) {
                         variant="outlined"
                         startIcon={<Download />}
                         onClick={async () => {
+                          const toastId = toast.loading('Génération du ticket...');
                           try {
                             const res = await fetch('/api/renvoyer-ticket-masterclass', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: reservation.id })
+                              body: JSON.stringify({ 
+                                id: reservation.id,
+                                download: true // Indiquer qu'on veut télécharger
+                              })
                             });
-                            if (!res.ok) throw new Error('Erreur lors de la génération du ticket');
+                            if (!res.ok) {
+                              const errorData = await res.json();
+                              throw new Error(errorData.message || 'Erreur lors de la génération du ticket');
+                            }
                             const blob = await res.blob();
                             const url = window.URL.createObjectURL(blob);
                             const link = document.createElement('a');
                             link.href = url;
-                            link.setAttribute('download', `ticket-masterclass-${reservation.id}.pdf`);
+                            const titreSafe = reservation.masterclasses?.titre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                            link.setAttribute('download', `ticket-masterclass-${titreSafe}.pdf`);
                             document.body.appendChild(link);
                             link.click();
                             link.parentNode.removeChild(link);
                             window.URL.revokeObjectURL(url);
+                            toast.success('Ticket téléchargé !', { id: toastId });
                           } catch (e) {
-                            alert('Erreur lors du téléchargement du ticket');
+                            console.error("Erreur téléchargement ticket:", e);
+                            toast.error(`Erreur: ${e.message}`, { id: toastId });
                           }
                         }}
                       >

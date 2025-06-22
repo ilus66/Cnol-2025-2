@@ -44,7 +44,8 @@ import {
   ContactPhone,
   School,
   EmojiEvents,
-  Map
+  Map,
+  CheckCircle,
 } from '@mui/icons-material';
 import dynamic from 'next/dynamic';
 import { toast } from 'react-hot-toast';
@@ -233,6 +234,8 @@ export default function MonEspace({ user }) {
         applicationServerKey,
       });
 
+      console.log('Abonnement Push obtenu:', subscription);
+
       // Envoyer l'abonnement au serveur
       const response = await fetch('/api/push/subscribe', {
         method: 'POST',
@@ -242,6 +245,7 @@ export default function MonEspace({ user }) {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Réponse erreur du serveur:', errorData);
         throw new Error(errorData.message || 'Échec de l\'abonnement côté serveur.');
       }
 
@@ -288,10 +292,28 @@ export default function MonEspace({ user }) {
     }
   };
 
+  const handleDownloadTicket = async (type, reservationId) => {
+    try {
+      const url = type === 'atelier'
+        ? `/api/download-ticket-atelier?reservationId=${reservationId}`
+        : `/api/download-ticket-masterclass?reservationId=${reservationId}`;
+      
+      window.open(url, '_blank');
+
+    } catch (error) {
+      toast.error('Erreur lors du téléchargement du ticket.');
+      console.error('Erreur de téléchargement:', error);
+    }
+  };
+
+  // Filtre les réservations confirmées
+  const confirmedAteliers = user.reservations_ateliers?.filter(r => r.status === 'confirmé') || [];
+  const confirmedMasterclasses = user.reservations_masterclass?.filter(r => r.status === 'confirmé') || [];
+
   return (
-    <Box sx={{ p: 2, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ p: 2, maxWidth: 800, margin: 'auto' }}>
       {/* En-tête avec infos utilisateur */}
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box>
             <Typography variant="h4" gutterBottom>
@@ -368,162 +390,119 @@ export default function MonEspace({ user }) {
           </Paper>
         </Grid>
 
-        {/* Mes Réservations Ateliers - Condition d'affichage ajoutée */}
-        {user.valide && isAllowedForWorkshops && (
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                <School sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Mes Réservations Ateliers
-              </Typography>
-              {user.reservations_ateliers && user.reservations_ateliers.filter(r => r.statut === 'confirmé').length > 0 ? (
-                <List>
-                  {user.reservations_ateliers.filter(r => r.statut === 'confirmé').map((reservation) => (
-                    <ListItem key={reservation.id}>
-                      <ListItemAvatar>
-                        <Avatar>
-                          <Event />
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={reservation.ateliers?.titre}
-                        secondary={new Date(reservation.ateliers?.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
-                      />
-                      <Chip 
-                        label="confirmé" 
-                        color="success"
-                        size="small"
-                        sx={{ mr: 1 }}
-                      />
-                      <Button
-                        variant="outlined"
-                        startIcon={<Download />}
-                        onClick={async () => {
-                          const toastId = toast.loading('Génération du ticket...');
-                          try {
-                            const res = await fetch(`/api/download-ticket-atelier?id=${reservation.id}`);
-                            if (!res.ok) {
-                              const errorData = await res.json();
-                              throw new Error(errorData.message || 'Erreur lors de la génération du ticket');
-                            }
-                            const blob = await res.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = url;
-                            const titreSafe = reservation.ateliers?.titre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                            link.setAttribute('download', `ticket-atelier-${titreSafe}.pdf`);
-                            document.body.appendChild(link);
-                            link.click();
-                            link.parentNode.removeChild(link);
-                            window.URL.revokeObjectURL(url);
-                            toast.success('Ticket téléchargé !', { id: toastId });
-                          } catch (e) {
-                            console.error("Erreur téléchargement ticket:", e);
-                            toast.error(`Erreur: ${e.message}`, { id: toastId });
-                          }
-                        }}
-                      >
-                        Télécharger le ticket
-                      </Button>
-                    </ListItem>
-                  ))}
-                </List>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Aucun atelier validé
-                </Typography>
-              )}
-              {settings.ouverture_reservation_atelier && (
-                <Button 
-                  variant="contained" 
-                  fullWidth 
-                  sx={{ mt: 2 }}
-                  href="/reservation-ateliers"
-                >
-                  Réserver un atelier
-                </Button>
-              )}
-            </Paper>
-          </Grid>
+        {/* Section Ateliers */}
+        {isAllowedForWorkshops && settings.ateliers_actifs && (
+          <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, mb: 3 }}>
+            <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+              <School />
+              <Typography variant="h5" component="h2">Mes Réservations Ateliers</Typography>
+            </Stack>
+
+            {confirmedAteliers.length > 0 ? (
+              <Stack spacing={2}>
+                {confirmedAteliers.map(({ id, ateliers: atelier }) => (
+                  <Card key={id} variant="outlined">
+                    <CardContent>
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={12} sm={8}>
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <Event sx={{ color: 'text.secondary' }} />
+                            <Box>
+                              <Typography variant="body1" fontWeight="bold">{atelier.nom}</Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {new Date(atelier.date_heure).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {new Date(atelier.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                           <Stack direction={{xs: "column", sm: "row"}} spacing={1} alignItems="center" justifyContent="flex-end">
+                             <Chip icon={<CheckCircle />} label="Confirmé" color="success" size="small" />
+                             <Button
+                               variant="outlined"
+                               size="small"
+                               startIcon={<Download />}
+                               onClick={() => handleDownloadTicket('atelier', id)}
+                             >
+                               Le Ticket
+                             </Button>
+                           </Stack>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Stack>
+            ) : (
+              <Alert severity="info" sx={{ mt: 2 }}>Vous n'avez aucune réservation d'atelier confirmée.</Alert>
+            )}
+            
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+              <Button variant="contained" component={Link} href="/ateliers">
+                Réserver un atelier
+              </Button>
+            </Box>
+          </Paper>
         )}
 
-        {/* Mes Réservations Masterclass - Condition d'affichage ajoutée */}
-        {user.valide && isAllowedForWorkshops && (
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                <School sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Mes Réservations Masterclass
-              </Typography>
-              {user.reservations_masterclass && user.reservations_masterclass.filter(r => r.statut === 'confirmé').length > 0 ? (
-                <List>
-                  {user.reservations_masterclass.filter(r => r.statut === 'confirmé').map((reservation) => (
-                    <ListItem key={reservation.id}>
-                      <ListItemAvatar>
-                        <Avatar>
-                          <Event />
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={reservation.masterclasses?.titre}
-                        secondary={new Date(reservation.masterclasses?.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
-                      />
-                      <Chip 
-                        label="confirmé" 
-                        color="success"
-                        size="small"
-                        sx={{ mr: 1 }}
-                      />
-                      <Button
-                        variant="outlined"
-                        startIcon={<Download />}
-                        onClick={async () => {
-                          const toastId = toast.loading('Génération du ticket...');
-                          try {
-                            const res = await fetch(`/api/download-ticket-masterclass?id=${reservation.id}`);
-                            if (!res.ok) {
-                              const errorData = await res.json();
-                              throw new Error(errorData.message || 'Erreur lors de la génération du ticket');
-                            }
-                            const blob = await res.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = url;
-                            const titreSafe = reservation.masterclasses?.titre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                            link.setAttribute('download', `ticket-masterclass-${titreSafe}.pdf`);
-                            document.body.appendChild(link);
-                            link.click();
-                            link.parentNode.removeChild(link);
-                            window.URL.revokeObjectURL(url);
-                            toast.success('Ticket téléchargé !', { id: toastId });
-                          } catch (e) {
-                            console.error("Erreur téléchargement ticket:", e);
-                            toast.error(`Erreur: ${e.message}`, { id: toastId });
-                          }
-                        }}
-                      >
-                        Télécharger le ticket
-                      </Button>
-                    </ListItem>
-                  ))}
-                </List>
+        {/* Section Masterclass */}
+        {isAllowedForWorkshops && settings.masterclass_actifs && (
+           <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, mb: 3 }}>
+              <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+                  <EmojiEvents />
+                  <Typography variant="h5" component="h2">Mes Réservations Masterclass</Typography>
+              </Stack>
+
+              {confirmedMasterclasses.length > 0 ? (
+                  <Stack spacing={2}>
+                      {confirmedMasterclasses.map(({ id, masterclasses: masterclass }) => (
+                           <Card key={id} variant="outlined">
+                               <CardContent>
+                                  <Grid container spacing={2} alignItems="center">
+                                      <Grid item xs={12} sm={8}>
+                                          <Stack direction="row" spacing={2} alignItems="center">
+                                              <Event sx={{ color: 'text.secondary' }} />
+                                              <Box>
+                                                  <Typography variant="body1" fontWeight="bold">{masterclass.nom}</Typography>
+                                                  <Typography variant="body2" color="text.secondary">
+                                                    {new Date(masterclass.date_heure).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                                  </Typography>
+                                                  <Typography variant="body2" color="text.secondary">
+                                                    {new Date(masterclass.date_heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                  </Typography>
+                                              </Box>
+                                          </Stack>
+                                      </Grid>
+                                      <Grid item xs={12} sm={4}>
+                                        <Stack direction={{xs: "column", sm: "row"}} spacing={1} alignItems="center" justifyContent="flex-end">
+                                          <Chip icon={<CheckCircle />} label="Confirmé" color="success" size="small" />
+                                          <Button
+                                              variant="outlined"
+                                              size="small"
+                                              startIcon={<Download />}
+                                              onClick={() => handleDownloadTicket('masterclass', id)}
+                                          >
+                                              Le Ticket
+                                          </Button>
+                                        </Stack>
+                                      </Grid>
+                                  </Grid>
+                               </CardContent>
+                           </Card>
+                      ))}
+                  </Stack>
               ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Aucune masterclass validée
-                </Typography>
+                  <Alert severity="info" sx={{ mt: 2 }}>Vous n'avez aucune réservation de masterclass confirmée.</Alert>
               )}
-              {settings.ouverture_reservation_masterclass && (
-                <Button 
-                  variant="contained" 
-                  fullWidth 
-                  sx={{ mt: 2 }}
-                  href="/reservation-masterclass"
-                >
-                  Réserver une masterclass
-                </Button>
-              )}
-            </Paper>
-          </Grid>
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                  <Button variant="contained" component={Link} href="/masterclass">
+                      Réserver une masterclass
+                  </Button>
+              </Box>
+           </Paper>
         )}
 
         {/* Scanner Badge */}

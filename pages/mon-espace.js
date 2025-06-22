@@ -81,18 +81,14 @@ export const getServerSideProps = async ({ req }) => {
       };
     }
 
-    const { data: userData, error } = await supabase
+    // 1. Récupérer les données de base de l'utilisateur
+    const { data: userData, error: userError } = await supabase
       .from('inscription')
-      // On charge l'utilisateur et ses réservations associées en une seule requête
-      .select(`
-        *,
-        reservations_ateliers(*, ateliers(*)),
-        reservations_masterclass(*, masterclasses:masterclass(*))
-      `)
+      .select('*')
       .eq('id', sessionData.id)
       .single();
 
-    if (error || !userData) {
+    if (userError || !userData) {
       return {
         redirect: {
           destination: '/identification?error=user_not_found',
@@ -100,10 +96,33 @@ export const getServerSideProps = async ({ req }) => {
         },
       };
     }
+    
+    // 2. Récupérer les réservations d'ateliers par email
+    const { data: ateliersData, error: ateliersError } = await supabase
+        .from('reservations_ateliers')
+        .select('*, ateliers(*)')
+        .eq('email', userData.email);
+
+    // 3. Récupérer les réservations de masterclass par email
+    const { data: masterclassData, error: masterclassError } = await supabase
+        .from('reservations_masterclass')
+        .select('*, masterclasses:masterclass(*)')
+        .eq('email', userData.email);
+
+    if (ateliersError || masterclassError) {
+        console.error("Erreur de récupération des réservations:", ateliersError, masterclassError);
+    }
+    
+    // 4. Combiner les données et les passer au composant
+    const userWithReservations = {
+      ...userData,
+      reservations_ateliers: ateliersData || [],
+      reservations_masterclass: masterclassData || [],
+    };
 
     return {
       props: {
-        user: userData,
+        user: userWithReservations,
       },
     };
   } catch (error) {

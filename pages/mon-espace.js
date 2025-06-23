@@ -431,56 +431,58 @@ export default function MonEspace({ user }) {
                         primary={reservation.ateliers?.titre}
                         secondary={new Date(reservation.ateliers?.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
                       />
-                      <Chip 
-                        label="confirmé" 
-                        color="success"
-                        size="small"
-                        sx={{ mr: 1 }}
-                      />
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<Download />}
-                        sx={{
-                          width: '100%',
-                          borderRadius: 999,
-                          fontWeight: 'bold',
-                          fontSize: { xs: '0.95rem', sm: '1.05rem' },
-                          letterSpacing: 1,
-                          boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
-                          py: 1.2,
-                          my: 1.5,
-                          textTransform: 'none',
-                          whiteSpace: 'normal',
-                          px: 2
-                        }}
-                        onClick={async () => {
-                          const toastId = toast.loading('Génération du ticket...');
-                          try {
-                            const res = await fetch(`/api/download-ticket-atelier?id=${reservation.id}`);
-                            if (!res.ok) {
-                              const errorData = await res.json();
-                              throw new Error(errorData.message || 'Erreur lors de la génération du ticket');
+                      <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                        <Chip 
+                          label="confirmé" 
+                          color="success"
+                          size="small"
+                          sx={{ mr: { xs: 0, sm: 1 }, mb: { xs: 1, sm: 0 } }}
+                        />
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          startIcon={<Download />}
+                          sx={{
+                            borderRadius: 24,
+                            fontWeight: 'bold',
+                            fontSize: { xs: '0.90rem', sm: '1rem' },
+                            letterSpacing: 1,
+                            boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
+                            py: 0.8,
+                            px: 1.5,
+                            my: 0.5,
+                            textTransform: 'none',
+                            whiteSpace: 'normal',
+                            maxWidth: 180
+                          }}
+                          onClick={async () => {
+                            const toastId = toast.loading('Génération du ticket...');
+                            try {
+                              const res = await fetch(`/api/download-ticket-atelier?id=${reservation.id}`);
+                              if (!res.ok) {
+                                const errorData = await res.json();
+                                throw new Error(errorData.message || 'Erreur lors de la génération du ticket');
+                              }
+                              const blob = await res.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              const titreSafe = reservation.ateliers?.titre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                              link.setAttribute('download', `ticket-atelier-${titreSafe}.pdf`);
+                              document.body.appendChild(link);
+                              link.click();
+                              link.parentNode.removeChild(link);
+                              window.URL.revokeObjectURL(url);
+                              toast.success('Ticket téléchargé !', { id: toastId });
+                            } catch (e) {
+                              console.error("Erreur téléchargement ticket:", e);
+                              toast.error(`Erreur: ${e.message}`, { id: toastId });
                             }
-                            const blob = await res.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = url;
-                            const titreSafe = reservation.ateliers?.titre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                            link.setAttribute('download', `ticket-atelier-${titreSafe}.pdf`);
-                            document.body.appendChild(link);
-                            link.click();
-                            link.parentNode.removeChild(link);
-                            window.URL.revokeObjectURL(url);
-                            toast.success('Ticket téléchargé !', { id: toastId });
-                          } catch (e) {
-                            console.error("Erreur téléchargement ticket:", e);
-                            toast.error(`Erreur: ${e.message}`, { id: toastId });
-                          }
-                        }}
-                      >
-                        TÉLÉCHARGER LE TICKET
-                      </Button>
+                          }}
+                        >
+                          TÉLÉCHARGER LE TICKET
+                        </Button>
+                      </Stack>
                     </ListItem>
                   ))}
                 </List>
@@ -535,56 +537,58 @@ export default function MonEspace({ user }) {
                         primary={reservation.masterclasses?.titre}
                         secondary={new Date(reservation.masterclasses?.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
                       />
-                      <Chip 
-                        label="confirmé" 
-                        color="success"
-                        size="small"
-                        sx={{ mr: 1 }}
-                      />
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<Download />}
-                        sx={{
-                          width: '100%',
-                          borderRadius: 999,
-                          fontWeight: 'bold',
-                          fontSize: { xs: '0.95rem', sm: '1.05rem' },
-                          letterSpacing: 1,
-                          boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
-                          py: 1.2,
-                          my: 1.5,
-                          textTransform: 'none',
-                          whiteSpace: 'normal',
-                          px: 2
-                        }}
-                        onClick={async () => {
-                          const toastId = toast.loading('Génération du ticket...');
-                          try {
-                            const res = await fetch(`/api/download-ticket-masterclass?id=${reservation.id}`);
-                            if (!res.ok) {
-                              const errorData = await res.json();
-                              throw new Error(errorData.message || 'Erreur lors de la génération du ticket');
+                      <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" spacing={1} sx={{ width: '100%' }}>
+                        <Chip 
+                          label="confirmé" 
+                          color="success"
+                          size="small"
+                          sx={{ mr: { xs: 0, sm: 1 }, mb: { xs: 1, sm: 0 } }}
+                        />
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          startIcon={<Download />}
+                          sx={{
+                            borderRadius: 24,
+                            fontWeight: 'bold',
+                            fontSize: { xs: '0.90rem', sm: '1rem' },
+                            letterSpacing: 1,
+                            boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
+                            py: 0.8,
+                            px: 1.5,
+                            my: 0.5,
+                            textTransform: 'none',
+                            whiteSpace: 'normal',
+                            maxWidth: 180
+                          }}
+                          onClick={async () => {
+                            const toastId = toast.loading('Génération du ticket...');
+                            try {
+                              const res = await fetch(`/api/download-ticket-masterclass?id=${reservation.id}`);
+                              if (!res.ok) {
+                                const errorData = await res.json();
+                                throw new Error(errorData.message || 'Erreur lors de la génération du ticket');
+                              }
+                              const blob = await res.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              const titreSafe = reservation.masterclasses?.titre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                              link.setAttribute('download', `ticket-masterclass-${titreSafe}.pdf`);
+                              document.body.appendChild(link);
+                              link.click();
+                              link.parentNode.removeChild(link);
+                              window.URL.revokeObjectURL(url);
+                              toast.success('Ticket téléchargé !', { id: toastId });
+                            } catch (e) {
+                              console.error("Erreur téléchargement ticket:", e);
+                              toast.error(`Erreur: ${e.message}`, { id: toastId });
                             }
-                            const blob = await res.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = url;
-                            const titreSafe = reservation.masterclasses?.titre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                            link.setAttribute('download', `ticket-masterclass-${titreSafe}.pdf`);
-                            document.body.appendChild(link);
-                            link.click();
-                            link.parentNode.removeChild(link);
-                            window.URL.revokeObjectURL(url);
-                            toast.success('Ticket téléchargé !', { id: toastId });
-                          } catch (e) {
-                            console.error("Erreur téléchargement ticket:", e);
-                            toast.error(`Erreur: ${e.message}`, { id: toastId });
-                          }
-                        }}
-                      >
-                        TÉLÉCHARGER LE TICKET
-                      </Button>
+                          }}
+                        >
+                          TÉLÉCHARGER LE TICKET
+                        </Button>
+                      </Stack>
                     </ListItem>
                   ))}
                 </List>

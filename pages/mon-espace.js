@@ -315,6 +315,11 @@ export default function MonEspace({ user }) {
         <Typography variant="body1" color="text.secondary">
           {user.participant_type} • {user.email}
         </Typography>
+        {user.fonction && (
+          <Typography variant="body2" color="text.secondary">
+            Fonction : {user.fonction}
+          </Typography>
+        )}
         <Chip 
           label={user.valide ? "Compte validé" : "En attente de validation"} 
           color={user.valide ? "success" : "warning"}

@@ -317,7 +317,7 @@ export default function MonEspace({ user }) {
         </Typography>
         {user.fonction && (
           <Typography variant="body2" color="text.secondary">
-            Fonction : {user.fonction}
+            {user.fonction}
           </Typography>
         )}
         <Chip 

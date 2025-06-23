@@ -432,6 +432,11 @@ export default function MonEspace({ user }) {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         {new Date(reservation.ateliers?.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
                       </Typography>
+                      {reservation.ateliers?.intervenant && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Intervenant : {reservation.ateliers.intervenant}
+                        </Typography>
+                      )}
                       <Button
                         variant="contained"
                         color="primary"
@@ -528,6 +533,11 @@ export default function MonEspace({ user }) {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         {new Date(reservation.masterclasses?.date_heure).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
                       </Typography>
+                      {reservation.masterclasses?.intervenant && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Intervenant : {reservation.masterclasses.intervenant}
+                        </Typography>
+                      )}
                       <Button
                         variant="contained"
                         color="primary"

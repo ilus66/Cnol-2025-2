@@ -398,6 +398,7 @@ export default function MonEspace({ user }) {
                       <Button
                         variant="outlined"
                         startIcon={<Download />}
+                        sx={{ width: { xs: '100%', sm: 'auto' }, mt: 1, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '0.95rem' }, letterSpacing: 1 }}
                         onClick={async () => {
                           const toastId = toast.loading('Génération du ticket...');
                           try {
@@ -423,7 +424,7 @@ export default function MonEspace({ user }) {
                           }
                         }}
                       >
-                        Télécharger le ticket
+                        TÉLÉCHARGER LE TICKET
                       </Button>
                     </ListItem>
                   ))}
@@ -477,6 +478,7 @@ export default function MonEspace({ user }) {
                       <Button
                         variant="outlined"
                         startIcon={<Download />}
+                        sx={{ width: { xs: '100%', sm: 'auto' }, mt: 1, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '0.95rem' }, letterSpacing: 1 }}
                         onClick={async () => {
                           const toastId = toast.loading('Génération du ticket...');
                           try {
@@ -502,7 +504,7 @@ export default function MonEspace({ user }) {
                           }
                         }}
                       >
-                        Télécharger le ticket
+                        TÉLÉCHARGER LE TICKET
                       </Button>
                     </ListItem>
                   ))}

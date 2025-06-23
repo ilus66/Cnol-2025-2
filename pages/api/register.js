@@ -18,6 +18,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Vérifier si une inscription existe déjà avec cet email
+    const { data: existing, error: existingError } = await supabase
+      .from('inscription')
+      .select('id, email, valide')
+      .eq('email', user.email)
+      .single();
+    if (existing) {
+      return res.status(409).json({ message: "Une inscription avec cet email existe déjà. Merci de patienter la validation ou de vérifier vos emails." });
+    }
+
     // Liste des champs autorisés (ceux de la table inscription)
     const allowedFields = ['email', 'telephone', 'nom', 'prenom', 'fonction', 'ville', 'identifiant_badge'];
     const userToInsert = {};

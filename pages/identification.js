@@ -32,8 +32,8 @@ export default function IdentificationPage() {
       }
       
       // Rediriger vers la page demandée initialement ou vers mon-espace par défaut
-      // On utilise window.location.href pour forcer un rechargement complet de la page
-      // et s'assurer que le nouveau cookie de session est bien pris en compte par le serveur.
+      // On utilise window.location.href pour forcer un rechargement complet
+      // et s'assurer que le cookie est bien lu par le navigateur.
       window.location.href = redirect || '/mon-espace';
 
     } catch (err) {

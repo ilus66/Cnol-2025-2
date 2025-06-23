@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
     if (!user) {
       console.log('❌ Utilisateur non trouvé');
-      return res.status(401).json({ message: 'Aucun utilisateur trouvé avec cette combinaison email/badge.' });
+      return res.status(401).json({ message: "Code erroné ou email non reconnu. Merci de vérifier les informations saisies. En cas de problème persistant, contactez-nous à cnol.badge@gmail.com." });
     }
 
     console.log('✅ Utilisateur trouvé:', { id: user.id, email: user.email, valide: user.valide });

@@ -44,7 +44,8 @@ import {
   ContactPhone,
   School,
   EmojiEvents,
-  Map
+  Map,
+  AdminPanelSettings
 } from '@mui/icons-material';
 import dynamic from 'next/dynamic';
 import { toast } from 'react-hot-toast';
@@ -144,6 +145,9 @@ export default function MonEspace({ user }) {
 
   // Détermine si l'utilisateur a le droit de voir les ateliers/masterclass
   const isAllowedForWorkshops = user && (user.fonction === 'Opticien' || user.fonction === 'Ophtalmologue');
+
+  // Bouton Admin visible uniquement pour les admins
+  const isAdmin = user && user.role === 'admin';
 
   useEffect(() => {
     // Vérifier les permissions de notifications
@@ -289,7 +293,20 @@ export default function MonEspace({ user }) {
   };
 
   return (
-    <Box sx={{ p: 2, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 900, mx: 'auto', p: { xs: 1, sm: 3 } }}>
+      {isAdmin && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="contained"
+            color="info"
+            startIcon={<AdminPanelSettings />}
+            href="/admin"
+            sx={{ fontWeight: 'bold', letterSpacing: 1 }}
+          >
+            Espace Admin
+          </Button>
+        </Box>
+      )}
       {/* En-tête avec infos utilisateur */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

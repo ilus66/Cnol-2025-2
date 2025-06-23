@@ -37,11 +37,10 @@ export default async function handler(req, res) {
       .single();
 
     const subscriptionData = {
-      p256dh: sub.keys.p256dh,
-      auth: sub.keys.auth,
-      updated_at: new Date().toISOString(),
-    };
-
+  p256dh: sub.keys.p256dh,
+  auth: sub.keys.auth,
+  // updated_at supprimé car la colonne n'existe plus
+};
     if (existing) {
       // Mettre à jour l'abonnement existant
       const { error: updateError } = await supabaseAdmin

@@ -308,87 +308,77 @@ export default function MonEspace({ user }) {
         </Box>
       )}
       {/* En-tête avec infos utilisateur */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              Bonjour, {user.prenom} {user.nom}
+      <Paper sx={{ p: 3, mb: 2, borderRadius: 4, boxShadow: 1, background: '#f7f7f7' }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+          Bonjour, {user.prenom} {user.nom}
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          {user.email} • {user.participant_type}
+        </Typography>
+        <Chip 
+          label={user.valide ? "Compte validé" : "En attente de validation"} 
+          color={user.valide ? "success" : "warning"}
+          sx={{ mt: 1, mb: 2 }}
+        />
+        <Button 
+          onClick={handleLogout} 
+          variant="contained"
+          color="error"
+          startIcon={<Logout />}
+          sx={{
+            width: '100%',
+            borderRadius: 3,
+            fontWeight: 'bold',
+            fontSize: { xs: '0.95rem', sm: '1.05rem' },
+            letterSpacing: 1,
+            py: 1.2,
+            mt: 2,
+            textTransform: 'none',
+            borderWidth: 2
+          }}
+        >
+          SE DÉCONNECTER
+        </Button>
+      </Paper>
+
+      <Paper sx={{ p: 3, mb: 2, borderRadius: 4, boxShadow: 1, background: '#f7f7f7' }}>
+        <Typography variant="h6" gutterBottom>
+          <QrCodeScanner sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Votre QR Code d'accès
+        </Typography>
+        {user.valide ? (
+          <Stack alignItems="center" spacing={2}>
+            <QRCode id="qr-code" value={user.identifiant_badge || user.email} size={200} />
+            <Typography variant="body2" color="text.secondary">
+              Code: {user.identifiant_badge || 'N/A'}
             </Typography>
-            <Typography variant="body1" color="text.secondary">
-              {user.email} • {user.participant_type}
-            </Typography>
-            <Chip 
-              label={user.valide ? "Compte validé" : "En attente de validation"} 
-              color={user.valide ? "success" : "warning"}
-              sx={{ mt: 1 }}
-            />
-          </Box>
-          <Button 
-            onClick={handleLogout} 
-            variant="outlined" 
-            color="error" 
-            startIcon={<Logout />}
-            sx={{
-              width: '100%',
-              borderRadius: 999,
-              fontWeight: 'bold',
-              fontSize: { xs: '0.95rem', sm: '1.05rem' },
-              letterSpacing: 1,
-              py: 1.2,
-              my: 1.5,
-              textTransform: 'none',
-              borderWidth: 2
-            }}
-          >
-            SE DÉCONNECTER
-          </Button>
-        </Box>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Download />}
+              sx={{
+                width: '100%',
+                borderRadius: 3,
+                fontWeight: 'bold',
+                fontSize: { xs: '0.95rem', sm: '1.05rem' },
+                letterSpacing: 1,
+                py: 1.2,
+                mt: 2,
+                textTransform: 'none'
+              }}
+              onClick={handleDownloadPdfBadge}
+            >
+              TÉLÉCHARGER MON BADGE (PDF)
+            </Button>
+          </Stack>
+        ) : (
+          <Alert severity="warning">
+            Votre inscription est en attente de validation. Votre badge sera disponible ici une fois votre compte approuvé.
+          </Alert>
+        )}
       </Paper>
 
       <Grid container spacing={3}>
-        {/* Badge QR Code */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              <QrCodeScanner sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Votre QR Code d'accès
-            </Typography>
-            {user.valide ? (
-              <Stack alignItems="center" spacing={2}>
-                <QRCode id="qr-code" value={user.identifiant_badge || user.email} size={200} />
-                <Typography variant="body2" color="text.secondary">
-                  Code: {user.identifiant_badge || 'N/A'}
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<Download />}
-                  sx={{
-                    width: '100%',
-                    borderRadius: 999,
-                    fontWeight: 'bold',
-                    fontSize: { xs: '0.95rem', sm: '1.05rem' },
-                    letterSpacing: 1,
-                    boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
-                    py: 1.2,
-                    my: 1.5,
-                    textTransform: 'none',
-                    whiteSpace: 'normal',
-                    px: 2
-                  }}
-                  onClick={handleDownloadPdfBadge}
-                >
-                  TÉLÉCHARGER MON BADGE (PDF)
-                </Button>
-              </Stack>
-            ) : (
-              <Alert severity="warning">
-                Votre inscription est en attente de validation. Votre badge sera disponible ici une fois votre compte approuvé.
-              </Alert>
-            )}
-          </Paper>
-        </Grid>
-
         {/* Notifications */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, height: '100%' }}>

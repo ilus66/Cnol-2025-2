@@ -81,37 +81,16 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: 'Aucun abonnement push trouvé dans la base de données.' });
     }
     
-    // Envoyer la notification à chaque abonnement
-    let success = 0;
-    let fail = 0;
-    const notificationPayload = JSON.stringify({ title, body, url });
-
-    const sendPromises = subs.map(sub =>
-      webpush.sendNotification({
-        endpoint: sub.endpoint,
-        keys: {
-          p256dh: sub.p256dh,
-          auth: sub.auth,
-        },
-      }, notificationPayload)
-      .then(() => {
-        success++;
-      })
-      .catch(err => {
-        console.error(`Échec de l'envoi à ${sub.endpoint.slice(0, 30)}... Erreur:`, err.statusCode);
-        // Si l'abonnement est expiré ou invalide (code 410), on pourrait le supprimer de la BDD ici.
-        fail++;
-      })
-    );
-    
-    await Promise.all(sendPromises);
-    
-    return res.status(200).json({ 
-      message: `Rapport d'envoi : ${success} succès, ${fail} échecs.`,
-      success,
-      fail
-    });
-
+    .catch(err => {
+  if (err.statusCode === 410 || err.statusCode === 404 || err.statusCode === 401) {
+    // Supprimer l'abonnement de la base
+    await supabaseAdmin
+      .from('push_subscriptions')
+      .delete()
+      .eq('id', sub.id);
+  }
+  fail++;
+});
   } catch (err) {
     console.error('Erreur API broadcast:', err);
     return res.status(500).json({ message: "Erreur serveur interne." });

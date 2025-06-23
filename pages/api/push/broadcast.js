@@ -30,6 +30,8 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   console.error('Les clés VAPID ne sont pas configurées. L\'envoi de notifications échouera.');
 }
 
+console.log(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Méthode non autorisée' });
@@ -106,7 +108,19 @@ export default async function handler(req, res) {
     );
     
     await Promise.all(sendPromises);
-    
+
+    // Enregistrer la notification pour chaque utilisateur abonné
+    const insertPromises = subs.map(sub =>
+      supabaseAdmin.from('notifications').insert({
+        user_id: sub.user_id, // Assure-toi que push_subscriptions a bien un champ user_id
+        title,
+        message: body,
+        url: url || null,
+        lu: false
+      })
+    );
+    await Promise.all(insertPromises);
+
     return res.status(200).json({ 
       message: `Rapport d'envoi : ${success} succès, ${fail} échecs.`,
       success,

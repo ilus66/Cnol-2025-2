@@ -142,6 +142,7 @@ export default function MonEspace({ user }) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [settings, setSettings] = useState({});
+  const [notifications, setNotifications] = useState([]);
 
   // Détermine si l'utilisateur a le droit de voir les ateliers/masterclass
   const isAllowedForWorkshops = user && (user.fonction === 'Opticien' || user.fonction === 'Ophtalmologue');
@@ -175,6 +176,17 @@ export default function MonEspace({ user }) {
       }
     };
     fetchContacts();
+
+    // Charger les notifications reçues
+    const fetchNotifications = async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (!error && data) setNotifications(data);
+    };
+    fetchNotifications();
   }, [user.id]);
 
   const handleLogout = async () => {
@@ -743,6 +755,49 @@ export default function MonEspace({ user }) {
                 referrerPolicy="no-referrer-when-downgrade"
               ></iframe>
             </Box>
+          </Paper>
+        </Grid>
+
+        {/* Historique des notifications */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              <Notifications sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Historique des notifications
+            </Typography>
+            {notifications.length > 0 ? (
+              <List>
+                {notifications.map((notif) => (
+                  <ListItem key={notif.id} alignItems="flex-start" divider>
+                    <ListItemAvatar>
+                      <Avatar>
+                        <Notifications />
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={notif.title}
+                      secondary={
+                        <>
+                          <Typography variant="body2" color="text.secondary">
+                            {notif.message}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(notif.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                          </Typography>
+                          {notif.url && (
+                            <><br /><a href={notif.url} target="_blank" rel="noopener noreferrer">Voir plus</a></>
+                          )}
+                        </>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Aucune notification reçue pour le moment.
+              </Typography>
+            )}
           </Paper>
         </Grid>
       </Grid>

@@ -332,7 +332,7 @@ export default function MonEspace({ user }) {
               width: '100%',
               borderRadius: 999,
               fontWeight: 'bold',
-              fontSize: '1.05rem',
+              fontSize: { xs: '0.95rem', sm: '1.05rem' },
               letterSpacing: 1,
               py: 1.2,
               my: 1.5,
@@ -367,12 +367,14 @@ export default function MonEspace({ user }) {
                     width: '100%',
                     borderRadius: 999,
                     fontWeight: 'bold',
-                    fontSize: '1.05rem',
+                    fontSize: { xs: '0.95rem', sm: '1.05rem' },
                     letterSpacing: 1,
                     boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
                     py: 1.2,
                     my: 1.5,
-                    textTransform: 'none'
+                    textTransform: 'none',
+                    whiteSpace: 'normal',
+                    px: 2
                   }}
                   onClick={handleDownloadPdfBadge}
                 >
@@ -443,12 +445,14 @@ export default function MonEspace({ user }) {
                           width: '100%',
                           borderRadius: 999,
                           fontWeight: 'bold',
-                          fontSize: '1.05rem',
+                          fontSize: { xs: '0.95rem', sm: '1.05rem' },
                           letterSpacing: 1,
                           boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
                           py: 1.2,
                           my: 1.5,
-                          textTransform: 'none'
+                          textTransform: 'none',
+                          whiteSpace: 'normal',
+                          px: 2
                         }}
                         onClick={async () => {
                           const toastId = toast.loading('Génération du ticket...');
@@ -493,11 +497,13 @@ export default function MonEspace({ user }) {
                     width: '100%',
                     borderRadius: 999,
                     fontWeight: 'bold',
-                    fontSize: '1.05rem',
+                    fontSize: { xs: '0.95rem', sm: '1.05rem' },
                     letterSpacing: 1,
                     py: 1.2,
                     my: 1.5,
-                    textTransform: 'none'
+                    textTransform: 'none',
+                    whiteSpace: 'normal',
+                    px: 2
                   }}
                   href="/reservation-ateliers"
                 >
@@ -543,12 +549,14 @@ export default function MonEspace({ user }) {
                           width: '100%',
                           borderRadius: 999,
                           fontWeight: 'bold',
-                          fontSize: '1.05rem',
+                          fontSize: { xs: '0.95rem', sm: '1.05rem' },
                           letterSpacing: 1,
                           boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
                           py: 1.2,
                           my: 1.5,
-                          textTransform: 'none'
+                          textTransform: 'none',
+                          whiteSpace: 'normal',
+                          px: 2
                         }}
                         onClick={async () => {
                           const toastId = toast.loading('Génération du ticket...');
@@ -593,11 +601,13 @@ export default function MonEspace({ user }) {
                     width: '100%',
                     borderRadius: 999,
                     fontWeight: 'bold',
-                    fontSize: '1.05rem',
+                    fontSize: { xs: '0.95rem', sm: '1.05rem' },
                     letterSpacing: 1,
                     py: 1.2,
                     my: 1.5,
-                    textTransform: 'none'
+                    textTransform: 'none',
+                    whiteSpace: 'normal',
+                    px: 2
                   }}
                   href="/reservation-masterclass"
                 >

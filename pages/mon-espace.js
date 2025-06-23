@@ -313,7 +313,7 @@ export default function MonEspace({ user }) {
           Bonjour, {user.prenom} {user.nom}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          {user.email} • {user.participant_type}
+          {user.participant_type} • {user.email}
         </Typography>
         <Chip 
           label={user.valide ? "Compte validé" : "En attente de validation"} 

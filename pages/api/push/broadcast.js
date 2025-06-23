@@ -20,7 +20,8 @@ const supabaseAdmin = createClient(
 
 // Configuration de web-push
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
+  console.log("VAPID_PRIVATE_KEY côté serveur:", process.env.VAPID_PRIVATE_KEY);
+    webpush.setVapidDetails(
     'mailto:contact@cnol.ma',
     VAPID_PUBLIC_KEY,
     VAPID_PRIVATE_KEY

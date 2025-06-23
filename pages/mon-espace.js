@@ -412,7 +412,7 @@ export default function MonEspace({ user }) {
 
         {/* Mes Réservations Ateliers - Condition d'affichage ajoutée */}
         {user.valide && isAllowedForWorkshops && (
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
                 <School sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -518,7 +518,7 @@ export default function MonEspace({ user }) {
 
         {/* Mes Réservations Masterclass - Condition d'affichage ajoutée */}
         {user.valide && isAllowedForWorkshops && (
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
                 <School sx={{ mr: 1, verticalAlign: 'middle' }} />

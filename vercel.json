@@ -14,13 +14,6 @@
     "NEXT_PUBLIC_VAPID_PUBLIC_KEY": "BMFV8wbeA0RwG3yufcjzlwmMMijhYppZlRoDe6XT_D2u4jhhdpVUBtgo0zsUoVb4YW2B2VUDAccSD95d8M4q9EI",
     "VAPID_PRIVATE_KEY": "uc2KHaisal3Vvhx0_LvzcHmL-L2xS9i-FVDfq85C06E"
   },
-  "redirects": [
-    {
-      "source": "/manifest.json",
-      "destination": "/api/manifest",
-      "permanent": false
-    }
-  ],
   "headers": [
     {
       "source": "/sw.js",

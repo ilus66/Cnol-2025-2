@@ -110,15 +110,18 @@ export default async function handler(req, res) {
     await Promise.all(sendPromises);
 
     // Enregistrer la notification pour chaque utilisateur abonné
-    const insertPromises = subs.map(sub =>
-      supabaseAdmin.from('notifications').insert({
-        user_id: sub.user_id, // Assure-toi que push_subscriptions a bien un champ user_id
+    const insertPromises = subs.map(async (sub) => {
+      const { error } = await supabaseAdmin.from('notifications').insert({
+        user_id: sub.user_id,
         title,
         message: body,
         url: url || null,
         lu: false
-      })
-    );
+      });
+      if (error) {
+        console.error('Erreur insertion notification pour user_id', sub.user_id, ':', error.message);
+      }
+    });
     await Promise.all(insertPromises);
 
     return res.status(200).json({ 

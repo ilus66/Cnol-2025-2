@@ -30,6 +30,9 @@ export default async function handler(req, res) {
       .single();
 
     if (error) {
+      if (error.code === 'PGRST116' || error.message?.includes('multiple') || error.message?.includes('no rows')) {
+        return res.status(401).json({ message: "Code erroné ou email non reconnu. Merci de vérifier les informations saisies. En cas de problème persistant, contactez-nous à cnol.badge@gmail.com." });
+      }
       console.error('❌ Erreur Supabase:', error);
       return res.status(500).json({ message: `Erreur de la base de données: ${error.message}` });
     }

@@ -12,7 +12,7 @@ export default class MyDocument extends Document {
       <Html lang="fr">
         <Head>
           {/* PWA Manifest */}
-          <link rel="manifest" href="/manifest.json" />
+          <link rel="manifest" href="/api/manifest" />
           
           {/* PWA Icons */}
           <link rel="icon" type="image/png" sizes="32x32" href="/logo-cnol.png" />

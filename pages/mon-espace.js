@@ -310,7 +310,7 @@ export default function MonEspace({ user }) {
       {/* En-tête avec infos utilisateur */}
       <Paper sx={{ p: 3, mb: 2, borderRadius: 4, boxShadow: 1, background: '#f7f7f7' }}>
         <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
-          Bonjour, {user.prenom} {user.nom}
+          Bonjour, {user.prenom?.toUpperCase()} {user.nom?.toUpperCase()}
         </Typography>
         <Typography variant="body1" color="text.secondary">
           {user.participant_type} • {user.email}

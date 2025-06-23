@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { 
   Box, Button, TextField, MenuItem, Select, InputLabel, FormControl, Typography,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Checkbox,
-  CircularProgress, Stack, Pagination, List, ListItem, ListItemText
+  CircularProgress, Stack, Pagination, List, ListItem, ListItemText, Divider
 } from '@mui/material'
 import toast, { Toaster } from 'react-hot-toast'
 import Link from 'next/link'
@@ -262,8 +262,14 @@ const AdminPage = () => {
         <Button variant="outlined" color="info" href="/admin/hotels" fullWidth={isMobile}>Gérer les Hôtels</Button>
         <Button variant="outlined" color="info" href="/admin/statistiques" fullWidth={isMobile}>Statistiques</Button>
         <Button variant="outlined" color="error" href="/admin/notifications" fullWidth={isMobile}>Notifications</Button>
+        <Button variant={settings.ouverture_reservation_atelier ? 'contained' : 'outlined'} color="primary" onClick={toggleAtelier} sx={{}} fullWidth={isMobile}>
+          {settings.ouverture_reservation_atelier ? 'Fermer les réservations ateliers' : 'Ouvrir les réservations ateliers'}
+        </Button>
+        <Button variant={settings.ouverture_reservation_masterclass ? 'contained' : 'outlined'} color="secondary" onClick={toggleMasterclass} fullWidth={isMobile}>
+          {settings.ouverture_reservation_masterclass ? 'Fermer les réservations masterclass' : 'Ouvrir les réservations masterclass'}
+        </Button>
       </Stack>
-
+      <Divider sx={{ my: 2 }} />
       <Typography variant="h5" gutterBottom>Ajouter un participant interne</Typography>
       <form onSubmit={handleAdd}>
         <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
@@ -300,7 +306,10 @@ const AdminPage = () => {
           </Button>
         </Stack>
       </form>
-
+      <Divider sx={{ my: 2 }} />
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        Nombre d'inscrits : {inscriptions.length}
+      </Typography>
       <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 3 }}>
         <TextField label="Rechercher nom/prénom" variant="outlined" value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} fullWidth />
         <FormControl sx={{ minWidth: 160, width: { xs: '100%', sm: 'auto' } }}>
@@ -321,21 +330,7 @@ const AdminPage = () => {
           </Select>
         </FormControl>
       </Stack>
-
-      <Box sx={{ mb: 2 }}>
-        <Button variant={settings.ouverture_reservation_atelier ? 'contained' : 'outlined'} color="primary" onClick={toggleAtelier} sx={{ mr: 2, mb: { xs: 1, sm: 0 } }} fullWidth={isMobile}>
-          {settings.ouverture_reservation_atelier ? 'Fermer les réservations ateliers' : 'Ouvrir les réservations ateliers'}
-        </Button>
-        <Button variant={settings.ouverture_reservation_masterclass ? 'contained' : 'outlined'} color="secondary" onClick={toggleMasterclass} fullWidth={isMobile}>
-          {settings.ouverture_reservation_masterclass ? 'Fermer les réservations masterclass' : 'Ouvrir les réservations masterclass'}
-        </Button>
-      </Box>
-
-      {/* Compteur nombre d'inscrits */}
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        Nombre d'inscrits : {inscriptions.length}
-      </Typography>
-
+      <Divider sx={{ my: 2 }} />
       {/* TABLEAU/INSCRITS : version mobile = cartes, desktop = tableau */}
       {isMobile ? (
         <Stack spacing={2}>
@@ -344,28 +339,31 @@ const AdminPage = () => {
           ) : inscriptions.length === 0 ? (
             <Typography align="center">Aucun inscrit trouvé</Typography>
           ) : (
-            inscriptions.map(inscrit => (
-              <Paper key={inscrit.id} sx={{ p: 2 }}>
-                <Typography><b>Nom :</b> {inscrit.nom}</Typography>
-                <Typography><b>Prénom :</b> {inscrit.prenom}</Typography>
-                <Typography><b>Type :</b> {inscrit.participant_type || inscrit.fonction}</Typography>
-                <Typography><b>Fonction :</b> {inscrit.fonction || '-'}</Typography>
-                <Typography><b>Statut :</b> <span style={{ color: inscrit.valide ? 'green' : 'red' }}>{inscrit.valide ? 'Validé' : 'Non validé'}</span></Typography>
-                <Typography><b>Email :</b> {inscrit.email}</Typography>
-                <Typography><b>Téléphone :</b> {inscrit.telephone}</Typography>
-                <Typography><b>Ville :</b> {inscrit.ville}</Typography>
-                <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                  {!inscrit.valide && (
-                    <Button variant="contained" color="success" size="small" onClick={() => validerInscription(inscrit.id)}>
-                      Valider
+            inscriptions
+              .slice()
+              .sort((a, b) => a.nom.localeCompare(b.nom) || a.prenom.localeCompare(b.prenom))
+              .map(inscrit => (
+                <Paper key={inscrit.id} sx={{ p: 2 }}>
+                  <Typography><b>Nom :</b> {inscrit.nom}</Typography>
+                  <Typography><b>Prénom :</b> {inscrit.prenom}</Typography>
+                  <Typography><b>Type :</b> {inscrit.participant_type || inscrit.fonction}</Typography>
+                  <Typography><b>Code identification :</b> {inscrit.identifiant_badge || '-'}</Typography>
+                  <Typography><b>Statut :</b> <span style={{ color: inscrit.valide ? 'green' : 'red' }}>{inscrit.valide ? 'Validé' : 'Non validé'}</span></Typography>
+                  <Typography><b>Email :</b> {inscrit.email}</Typography>
+                  <Typography><b>Téléphone :</b> {inscrit.telephone}</Typography>
+                  <Typography><b>Ville :</b> {inscrit.ville}</Typography>
+                  <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+                    {!inscrit.valide && (
+                      <Button variant="contained" color="success" size="small" onClick={() => validerInscription(inscrit.id)}>
+                        Valider
+                      </Button>
+                    )}
+                    <Button variant="contained" color="primary" size="small" onClick={() => handlePrintBadge(inscrit)}>
+                      Imprimer
                     </Button>
-                  )}
-                  <Button variant="contained" color="primary" size="small" onClick={() => handlePrintBadge(inscrit)}>
-                    Imprimer
-                  </Button>
-                </Box>
-              </Paper>
-            ))
+                  </Box>
+                </Paper>
+              ))
           )}
         </Stack>
       ) : (
@@ -376,7 +374,7 @@ const AdminPage = () => {
                 <TableCell>Nom</TableCell>
                 <TableCell>Prénom</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Fonction</TableCell>
+                <TableCell>Code identification</TableCell>
                 <TableCell>Statut</TableCell>
                 <TableCell>Email</TableCell>
                 <TableCell>Téléphone</TableCell>
@@ -398,30 +396,31 @@ const AdminPage = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                inscriptions.map(inscrit => (
-                  <TableRow key={inscrit.id}>
-                    <TableCell>{inscrit.nom}</TableCell>
-                    <TableCell>{inscrit.prenom}</TableCell>
-                    <TableCell>{inscrit.participant_type || inscrit.fonction}</TableCell>
-                    <TableCell>{inscrit.fonction || '-'}</TableCell>
-                    <TableCell sx={{ color: inscrit.valide ? 'green' : 'red' }}>
-                      {inscrit.valide ? 'Validé' : 'Non validé'}
-                    </TableCell>
-                    <TableCell>{inscrit.email}</TableCell>
-                    <TableCell>{inscrit.telephone}</TableCell>
-                    <TableCell>{inscrit.ville}</TableCell>
-                    <TableCell>
-                      {!inscrit.valide && (
-                        <Button variant="contained" color="success" size="small" sx={{ mr: 1 }} onClick={() => validerInscription(inscrit.id)}>
-                          Valider
+                inscriptions
+                  .slice()
+                  .sort((a, b) => a.nom.localeCompare(b.nom) || a.prenom.localeCompare(b.prenom))
+                  .map(inscrit => (
+                    <TableRow key={inscrit.id}>
+                      <TableCell>{inscrit.nom}</TableCell>
+                      <TableCell>{inscrit.prenom}</TableCell>
+                      <TableCell>{inscrit.participant_type || inscrit.fonction}</TableCell>
+                      <TableCell>{inscrit.identifiant_badge || '-'}</TableCell>
+                      <TableCell sx={{ color: inscrit.valide ? 'green' : 'red' }}>{inscrit.valide ? 'Validé' : 'Non validé'}</TableCell>
+                      <TableCell>{inscrit.email}</TableCell>
+                      <TableCell>{inscrit.telephone}</TableCell>
+                      <TableCell>{inscrit.ville}</TableCell>
+                      <TableCell>
+                        {!inscrit.valide && (
+                          <Button variant="contained" color="success" size="small" onClick={() => validerInscription(inscrit.id)}>
+                            Valider
+                          </Button>
+                        )}
+                        <Button variant="contained" color="primary" size="small" onClick={() => handlePrintBadge(inscrit)} sx={{ ml: 1 }}>
+                          Imprimer
                         </Button>
-                      )}
-                      <Button variant="contained" color="primary" size="small" onClick={() => handlePrintBadge(inscrit)}>
-                        Imprimer
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                    </TableRow>
+                  ))
               )}
             </TableBody>
           </Table>

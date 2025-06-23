@@ -57,21 +57,16 @@ export default async function handler(req, res) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     await sendMail({
       to: user.email,
-      subject: "Confirmation d'inscription - CNOL 2025",
-      text: `Bonjour ${user.prenom},\n\nMerci pour votre inscription au CNOL 2025 !\nVotre inscription est bien reçue et sera validée par notre équipe.\n\nVotre code d'identification est : ${badgeCode}\n\nUne fois validée, votre badge vous sera envoyé par email. Vous pourrez alors accéder à votre espace personnel.\n\nAccédez à votre espace personnel ici : ${baseUrl}/mon-espace\n\nÀ très bientôt !\nL'équipe CNOL 2025`,
+      subject: "Confirmation de votre inscription au CNOL 2025",
+      text: `Bonjour ${user.prenom},\n\nNous avons bien reçu votre demande d'inscription au Congrès National d'Optique et de Lunetterie (CNOL 2025).\n\nVotre inscription est en cours de traitement.\nVous recevrez un nouvel email dès que votre inscription aura été validée par notre équipe.\n\nMerci de votre confiance et à très bientôt !\n\nL'équipe d'organisation du CNOL`,
       html: `<div style="font-family: Arial, sans-serif; color: #333; line-height:1.6; max-width:600px; margin:auto; padding:20px; border:1px solid #ddd; border-radius:8px;">
         <h2 style="color: #0070f3;">Bonjour ${user.prenom},</h2>
-        <p>Merci pour votre inscription au <strong>CNOL 2025</strong> !</p>
-        <p>Votre inscription est bien reçue et sera <strong>validée par notre équipe</strong>.</p>
-        <p>Votre code d'identification personnel est : <strong style="font-size: 1.2em; color: #d32f2f;">${badgeCode}</strong>. Conservez-le précieusement.</p>
-        <p><strong>Une fois votre inscription validée, votre badge vous sera envoyé par email.</strong> Vous pourrez utiliser ce code et votre email pour vous connecter à votre espace personnel.</p>
-        <p style="text-align:center; margin: 25px 0;">
-          <a href="${baseUrl}/mon-espace" style="background-color: #0070f3; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Accéder à mon Espace Personnel</a>
-        </p>
-        <p>Nous avons hâte de vous accueillir lors de cet événement incontournable de l'optique au Maroc.</p>
+        <p>Nous avons bien reçu votre demande d'inscription au <strong>CNOL 2025</strong>.</p>
+        <p>Votre inscription est en cours de traitement.<br>Vous recevrez un nouvel email dès que votre inscription aura été validée par notre équipe.</p>
+        <p>Merci de votre confiance et à très bientôt !</p>
         <hr style="border:none; border-top:1px solid #eee; margin:20px 0;" />
         <p style="font-size: 0.9em; color: #666;">
-          Pour toute question, contactez-nous à <a href="mailto:cnol.maroc@gmail.com">cnol.maroc@gmail.com</a><br />
+          Pour toute question, contactez-nous à <a href="mailto:cnol.badge@gmail.com">cnol.badge@gmail.com</a><br />
           &copy; 2025 CNOL. Tous droits réservés.
         </p>
       </div>`

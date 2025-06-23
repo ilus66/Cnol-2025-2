@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     });
 
     // Envoyer mail
-    await sendBadgeEmail(updated.email, `${updated.prenom} ${updated.nom}`, pdfBuffer);
+    await sendBadgeEmail(updated.email, `${updated.prenom} ${updated.nom}`, pdfBuffer, updated.identifiant_badge);
 
     // Envoi notification push (et insertion en base)
     if (updated && updated.id) {

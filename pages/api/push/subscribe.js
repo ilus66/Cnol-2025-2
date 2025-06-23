@@ -66,7 +66,6 @@ export default async function handler(req, res) {
           user_id: userId,
           endpoint: sub.endpoint,
           ...subscriptionData,
-          created_at: new Date().toISOString(),
         });
 
       if (insertError) {

@@ -326,10 +326,21 @@ export default function MonEspace({ user }) {
           <Button 
             onClick={handleLogout} 
             variant="outlined" 
-            color="secondary" 
+            color="error" 
             startIcon={<Logout />}
+            sx={{
+              width: '100%',
+              borderRadius: 999,
+              fontWeight: 'bold',
+              fontSize: '1.05rem',
+              letterSpacing: 1,
+              py: 1.2,
+              my: 1.5,
+              textTransform: 'none',
+              borderWidth: 2
+            }}
           >
-            Se déconnecter
+            SE DÉCONNECTER
           </Button>
         </Box>
       </Paper>
@@ -348,12 +359,24 @@ export default function MonEspace({ user }) {
                 <Typography variant="body2" color="text.secondary">
                   Code: {user.identifiant_badge || 'N/A'}
                 </Typography>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
+                  color="primary"
                   startIcon={<Download />}
+                  sx={{
+                    width: '100%',
+                    borderRadius: 999,
+                    fontWeight: 'bold',
+                    fontSize: '1.05rem',
+                    letterSpacing: 1,
+                    boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
+                    py: 1.2,
+                    my: 1.5,
+                    textTransform: 'none'
+                  }}
                   onClick={handleDownloadPdfBadge}
                 >
-                  Télécharger mon Badge (PDF)
+                  TÉLÉCHARGER MON BADGE (PDF)
                 </Button>
               </Stack>
             ) : (
@@ -413,9 +436,20 @@ export default function MonEspace({ user }) {
                         sx={{ mr: 1 }}
                       />
                       <Button
-                        variant="outlined"
+                        variant="contained"
+                        color="primary"
                         startIcon={<Download />}
-                        sx={{ width: { xs: '100%', sm: 'auto' }, mt: 1, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '0.95rem' }, letterSpacing: 1 }}
+                        sx={{
+                          width: '100%',
+                          borderRadius: 999,
+                          fontWeight: 'bold',
+                          fontSize: '1.05rem',
+                          letterSpacing: 1,
+                          boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
+                          py: 1.2,
+                          my: 1.5,
+                          textTransform: 'none'
+                        }}
                         onClick={async () => {
                           const toastId = toast.loading('Génération du ticket...');
                           try {
@@ -452,13 +486,22 @@ export default function MonEspace({ user }) {
                 </Typography>
               )}
               {settings.ouverture_reservation_atelier && (
-                <Button 
-                  variant="contained" 
-                  fullWidth 
-                  sx={{ mt: 2 }}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  sx={{
+                    width: '100%',
+                    borderRadius: 999,
+                    fontWeight: 'bold',
+                    fontSize: '1.05rem',
+                    letterSpacing: 1,
+                    py: 1.2,
+                    my: 1.5,
+                    textTransform: 'none'
+                  }}
                   href="/reservation-ateliers"
                 >
-                  Réserver un atelier
+                  RÉSERVER UN ATELIER
                 </Button>
               )}
             </Paper>
@@ -493,9 +536,20 @@ export default function MonEspace({ user }) {
                         sx={{ mr: 1 }}
                       />
                       <Button
-                        variant="outlined"
+                        variant="contained"
+                        color="primary"
                         startIcon={<Download />}
-                        sx={{ width: { xs: '100%', sm: 'auto' }, mt: 1, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '0.95rem' }, letterSpacing: 1 }}
+                        sx={{
+                          width: '100%',
+                          borderRadius: 999,
+                          fontWeight: 'bold',
+                          fontSize: '1.05rem',
+                          letterSpacing: 1,
+                          boxShadow: '0 4px 16px rgba(13,71,161,0.08)',
+                          py: 1.2,
+                          my: 1.5,
+                          textTransform: 'none'
+                        }}
                         onClick={async () => {
                           const toastId = toast.loading('Génération du ticket...');
                           try {
@@ -532,13 +586,22 @@ export default function MonEspace({ user }) {
                 </Typography>
               )}
               {settings.ouverture_reservation_masterclass && (
-                <Button 
-                  variant="contained" 
-                  fullWidth 
-                  sx={{ mt: 2 }}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  sx={{
+                    width: '100%',
+                    borderRadius: 999,
+                    fontWeight: 'bold',
+                    fontSize: '1.05rem',
+                    letterSpacing: 1,
+                    py: 1.2,
+                    my: 1.5,
+                    textTransform: 'none'
+                  }}
                   href="/reservation-masterclass"
                 >
-                  Réserver une masterclass
+                  RÉSERVER UNE MASTERCLASS
                 </Button>
               )}
             </Paper>

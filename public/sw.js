@@ -49,6 +49,7 @@ self.addEventListener('activate', function(event) {
 
 // Stratégie de cache : Network First, puis Cache
 self.addEventListener('fetch', function(event) {
+  if (event.request.method !== 'GET') return;
   event.respondWith(
     fetch(event.request)
       .then(function(response) {

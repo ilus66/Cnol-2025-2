@@ -8,14 +8,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@mui/material', '@mui/icons-material']
   },
-  async headers() {
-            key: 'Content-Type',
-            value: 'application/manifest+json',
-          },
-        ],
-      },
-    ];
-  },
   webpack: (config, { dev, isServer }) => {
     // Optimisations pour la production
     if (!dev && !isServer) {

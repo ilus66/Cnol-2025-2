@@ -80,6 +80,7 @@ self.addEventListener('fetch', function(event) {
 
 // Notifications push
 self.addEventListener('push', function(event) {
+  console.log('SW: push event reçu', event);
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'Notification CNOL';
   const options = {

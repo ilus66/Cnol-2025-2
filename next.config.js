@@ -9,11 +9,6 @@ const nextConfig = {
     optimizePackageImports: ['@mui/material', '@mui/icons-material']
   },
   async headers() {
-    return [
-      {
-        source: '/manifest.json',
-        headers: [
-          {
             key: 'Content-Type',
             value: 'application/manifest+json',
           },

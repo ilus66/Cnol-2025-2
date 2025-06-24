@@ -3,9 +3,6 @@
   "functions": {
     "pages/api/**/*.js": {
       "includeFiles": "public/images/logo-cnol.png"
-    },
-    "pages/api/manifest.js": {
-      "maxDuration": 10
     }
   },
   "env": {
@@ -24,15 +21,6 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/manifest.json",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/manifest+json"
         }
       ]
     }

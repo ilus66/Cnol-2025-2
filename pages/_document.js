@@ -12,7 +12,7 @@ export default class MyDocument extends Document {
       <Html lang="fr">
         <Head>
           {/* PWA Manifest */}
-          <script type="application/manifest+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "name": "CNOL 2025", "short_name": "CNOL", "description": "Congrès National d'Optique Lunetterie 2025", "start_url": "/", "display": "standalone", "background_color": "#0d47a1", "theme_color": "#1976d2", "orientation": "portrait-primary", "icons": [{ "src": "/logo-cnol.png", "sizes": "192x192", "type": "image/png" }, { "src": "/logo-cnol.png", "sizes": "512x512", "type": "image/png" }] }) }} />
+          <script type="application/manifest+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "name": "CNOL 2025", "short_name": "CNOL", "description": "Congrès National d'Optique Lunetterie 2025", "start_url": "/", "display": "standalone", "background_color": "#0d47a1", "theme_color": "#1976d2", "orientation": "portrait-primary", "icons": [{ "src": "/logo-cnol.png", "sizes": "192x192", "type": "image/png" }, { "src": "/logo-cnol.png", "sizes": "512x512", "type": "image/png" }], "serviceworker": { "src": "/sw.js", "scope": "/" } }) }} />
           
           {/* PWA Icons */}
           <link rel="icon" type="image/png" sizes="32x32" href="/logo-cnol.png" />

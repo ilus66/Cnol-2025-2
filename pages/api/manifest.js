@@ -1,21 +1,32 @@
-import fs from 'fs';
-import path from 'path';
-
 // API route pour servir le manifest.json avec le bon Content-Type
 export default function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const manifestPath = path.join(process.cwd(), 'public', 'manifest.json');
-    const manifestContent = fs.readFileSync(manifestPath, 'utf8');
-    
-    res.setHeader('Content-Type', 'application/manifest+json');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.status(200).send(manifestContent);
-  } catch (error) {
-    console.error('Error reading manifest.json:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  // Définir les headers immédiatement
+  res.setHeader('Content-Type', 'application/manifest+json');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  
+  // Contenu du manifest en dur pour éviter les problèmes de lecture de fichier
+  const manifest = {
+    "name": "CNOL 2025",
+    "short_name": "CNOL",
+    "description": "Congrès National d'Optique Lunetterie 2025",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0d47a1",
+    "theme_color": "#1976d2",
+    "orientation": "portrait-primary",
+    "icons": [
+      {
+        "src": "/logo-cnol.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "/logo-cnol.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ]
+  };
+  
+  res.status(200).json(manifest);
 } 

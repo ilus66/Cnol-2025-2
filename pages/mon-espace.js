@@ -414,6 +414,76 @@ export default function MonEspace({ user }) {
                 color="primary"
               />
             </Box>
+            
+            {/* Bouton de test pour diagnostiquer */}
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="small"
+              onClick={async () => {
+                console.log('=== DIAGNOSTIC NOTIFICATIONS ===');
+                console.log('Notification support:', 'Notification' in window);
+                console.log('ServiceWorker support:', 'serviceWorker' in navigator);
+                console.log('Permission actuelle:', Notification.permission);
+                console.log('VAPID Public Key:', process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
+                
+                if ('serviceWorker' in navigator) {
+                  try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    console.log('ServiceWorker registration:', registration);
+                    
+                    if (registration) {
+                      const subscription = await registration.pushManager.getSubscription();
+                      console.log('Push subscription:', subscription);
+                    }
+                  } catch (error) {
+                    console.error('Erreur diagnostic SW:', error);
+                  }
+                }
+                
+                // Test notification locale
+                if (Notification.permission === 'granted') {
+                  new Notification('Test CNOL', {
+                    body: 'Ceci est un test de notification',
+                    icon: '/logo-cnol.png'
+                  });
+                }
+              }}
+              sx={{ mt: 2, width: '100%' }}
+            >
+              🔍 DIAGNOSTIC NOTIFICATIONS
+            </Button>
+            
+            {/* Bouton pour tester l'envoi de notification */}
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              onClick={async () => {
+                const toastId = toast.loading('Envoi notification de test...');
+                try {
+                  const response = await fetch('/api/push/test-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id }),
+                  });
+                  
+                  const result = await response.json();
+                  
+                  if (response.ok) {
+                    toast.success(`Test réussi : ${result.success} succès, ${result.fail} échecs`, { id: toastId });
+                  } else {
+                    throw new Error(result.message);
+                  }
+                } catch (error) {
+                  console.error('Erreur test notification:', error);
+                  toast.error(`Erreur: ${error.message}`, { id: toastId });
+                }
+              }}
+              sx={{ mt: 1, width: '100%' }}
+            >
+              📱 TESTER NOTIFICATION PUSH
+            </Button>
           </Paper>
         </Grid>
 

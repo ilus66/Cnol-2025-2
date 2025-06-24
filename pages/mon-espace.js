@@ -49,6 +49,7 @@ import {
 } from '@mui/icons-material';
 import dynamic from 'next/dynamic';
 import { toast } from 'react-hot-toast';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 // On charge le QRCodeScanner de façon dynamique pour éviter les erreurs de build
 const QRCodeScanner = dynamic(() => import('../components/QRCodeScanner'), {
@@ -304,6 +305,22 @@ export default function MonEspace({ user }) {
     }
   };
 
+  // Ajout pour marquer comme lu
+  const markAllNotificationsRead = async () => {
+    // Optimiste : on met à jour localement
+    setNotifications((prev) => prev.map(n => ({ ...n, lu: true })));
+    // Appel API pour marquer comme lu côté serveur (à adapter selon votre API)
+    await fetch('/api/notifications/mark-all-read', { method: 'POST', body: JSON.stringify({ userId: user.id }) });
+  };
+
+  const handleNotificationClick = (notif) => {
+    if (notif.url) window.open(notif.url, '_blank');
+    // Marquer comme lu localement
+    setNotifications((prev) => prev.map(n => n.id === notif.id ? { ...n, lu: true } : n));
+    // Appel API pour marquer comme lu côté serveur (à adapter)
+    fetch('/api/notifications/mark-read', { method: 'POST', body: JSON.stringify({ id: notif.id }) });
+  };
+
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', p: { xs: 1, sm: 3 } }}>
       {isAdmin && (
@@ -320,42 +337,30 @@ export default function MonEspace({ user }) {
         </Box>
       )}
       {/* En-tête avec infos utilisateur */}
-      <Paper sx={{ p: 3, mb: 2, borderRadius: 4, boxShadow: 1, background: '#f7f7f7' }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
-          Bonjour, {user.prenom?.toUpperCase()} {user.nom?.toUpperCase()}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {user.participant_type} • {user.email}
-        </Typography>
-        {user.fonction && (
-          <Typography variant="body2" color="text.secondary">
-            {user.fonction}
+      <Paper sx={{ p: 3, mb: 2, borderRadius: 4, boxShadow: 1, background: '#f7f7f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+            Bonjour, {user.prenom?.toUpperCase()} {user.nom?.toUpperCase()}
           </Typography>
-        )}
-        <Chip 
-          label={user.valide ? "Compte validé" : "En attente de validation"} 
-          color={user.valide ? "success" : "warning"}
-          sx={{ mt: 1, mb: 2 }}
+          <Typography variant="body1" color="text.secondary">
+            {user.participant_type} • {user.email}
+          </Typography>
+          {user.fonction && (
+            <Typography variant="body2" color="text.secondary">
+              {user.fonction}
+            </Typography>
+          )}
+          <Chip 
+            label={user.valide ? "Compte validé" : "En attente de validation"} 
+            color={user.valide ? "success" : "warning"}
+            sx={{ mt: 1, mb: 2 }}
+          />
+        </Box>
+        <NotificationDropdown
+          notifications={notifications}
+          onMarkAllRead={markAllNotificationsRead}
+          onNotificationClick={handleNotificationClick}
         />
-        <Button 
-          onClick={handleLogout} 
-          variant="contained"
-          color="error"
-          startIcon={<Logout />}
-          sx={{
-            width: '100%',
-            borderRadius: 3,
-            fontWeight: 'bold',
-            fontSize: { xs: '0.95rem', sm: '1.05rem' },
-            letterSpacing: 1,
-            py: 1.2,
-            mt: 2,
-            textTransform: 'none',
-            borderWidth: 2
-          }}
-        >
-          SE DÉCONNECTER
-        </Button>
       </Paper>
 
       <Paper sx={{ p: 3, mb: 2, borderRadius: 4, boxShadow: 1, background: '#f7f7f7' }}>
@@ -414,76 +419,6 @@ export default function MonEspace({ user }) {
                 color="primary"
               />
             </Box>
-            
-            {/* Bouton de test pour diagnostiquer */}
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="small"
-              onClick={async () => {
-                console.log('=== DIAGNOSTIC NOTIFICATIONS ===');
-                console.log('Notification support:', 'Notification' in window);
-                console.log('ServiceWorker support:', 'serviceWorker' in navigator);
-                console.log('Permission actuelle:', Notification.permission);
-                console.log('VAPID Public Key:', process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
-                
-                if ('serviceWorker' in navigator) {
-                  try {
-                    const registration = await navigator.serviceWorker.getRegistration();
-                    console.log('ServiceWorker registration:', registration);
-                    
-                    if (registration) {
-                      const subscription = await registration.pushManager.getSubscription();
-                      console.log('Push subscription:', subscription);
-                    }
-                  } catch (error) {
-                    console.error('Erreur diagnostic SW:', error);
-                  }
-                }
-                
-                // Test notification locale
-                if (Notification.permission === 'granted') {
-                  new Notification('Test CNOL', {
-                    body: 'Ceci est un test de notification',
-                    icon: '/logo-cnol.png'
-                  });
-                }
-              }}
-              sx={{ mt: 2, width: '100%' }}
-            >
-              🔍 DIAGNOSTIC NOTIFICATIONS
-            </Button>
-            
-            {/* Bouton pour tester l'envoi de notification */}
-            <Button
-              variant="outlined"
-              color="primary"
-              size="small"
-              onClick={async () => {
-                const toastId = toast.loading('Envoi notification de test...');
-                try {
-                  const response = await fetch('/api/push/test-notification', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: user.id }),
-                  });
-                  
-                  const result = await response.json();
-                  
-                  if (response.ok) {
-                    toast.success(`Test réussi : ${result.success} succès, ${result.fail} échecs`, { id: toastId });
-                  } else {
-                    throw new Error(result.message);
-                  }
-                } catch (error) {
-                  console.error('Erreur test notification:', error);
-                  toast.error(`Erreur: ${error.message}`, { id: toastId });
-                }
-              }}
-              sx={{ mt: 1, width: '100%' }}
-            >
-              📱 TESTER NOTIFICATION PUSH
-            </Button>
           </Paper>
         </Grid>
 
@@ -825,49 +760,6 @@ export default function MonEspace({ user }) {
                 referrerPolicy="no-referrer-when-downgrade"
               ></iframe>
             </Box>
-          </Paper>
-        </Grid>
-
-        {/* Historique des notifications */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              <Notifications sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Historique des notifications
-            </Typography>
-            {notifications.length > 0 ? (
-              <List>
-                {notifications.map((notif) => (
-                  <ListItem key={notif.id} alignItems="flex-start" divider>
-                    <ListItemAvatar>
-                      <Avatar>
-                        <Notifications />
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={notif.title}
-                      secondary={
-                        <>
-                          <Typography variant="body2" color="text.secondary">
-                            {notif.message}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {new Date(notif.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
-                          </Typography>
-                          {notif.url && (
-                            <><br /><a href={notif.url} target="_blank" rel="noopener noreferrer">Voir plus</a></>
-                          )}
-                        </>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                Aucune notification reçue pour le moment.
-              </Typography>
-            )}
           </Paper>
         </Grid>
       </Grid>

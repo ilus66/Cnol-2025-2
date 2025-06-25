@@ -356,11 +356,22 @@ export default function MonEspace({ user }) {
             sx={{ mt: 1, mb: 2 }}
           />
         </Box>
-        <NotificationDropdown
-          notifications={notifications}
-          onMarkAllRead={markAllNotificationsRead}
-          onNotificationClick={handleNotificationClick}
-        />
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<Logout />}
+            onClick={handleLogout}
+            sx={{ mb: 1, fontWeight: 'bold' }}
+          >
+            Déconnexion
+          </Button>
+          <NotificationDropdown
+            notifications={notifications}
+            onMarkAllRead={markAllNotificationsRead}
+            onNotificationClick={handleNotificationClick}
+          />
+        </Box>
       </Paper>
 
       <Paper sx={{ p: 3, mb: 2, borderRadius: 4, boxShadow: 1, background: '#f7f7f7' }}>

@@ -420,9 +420,15 @@ const AdminPage = () => {
                 } else {
                   const nomA = (a.nom || '').toLowerCase();
                   const nomB = (b.nom || '').toLowerCase();
-            inscriptions
-              .slice()
-              .sort((a, b) => a.nom.localeCompare(b.nom) || a.prenom.localeCompare(b.prenom))
+                  if (nomA < nomB) return -1;
+                  if (nomA > nomB) return 1;
+                  const prenomA = (a.prenom || '').toLowerCase();
+                  const prenomB = (b.prenom || '').toLowerCase();
+                  if (prenomA < prenomB) return -1;
+                  if (prenomA > prenomB) return 1;
+                  return 0;
+                }
+              })
               .map(inscrit => (
                 <Paper key={inscrit.id} sx={{ p: 2 }}>
                   <Typography><b>Nom :</b> {inscrit.nom}</Typography>

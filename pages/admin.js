@@ -140,6 +140,23 @@ const AdminPage = () => {
       setAdding(false)
       return
     }
+    // Génération d'un code badge unique (3 chiffres + 3 lettres)
+    function generateBadgeCode() {
+      const digits = Math.floor(100 + Math.random() * 900); // 3 chiffres
+      const letters = Array(3)
+        .fill(0)
+        .map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26)))
+        .join('');
+      return `${digits}${letters}`;
+    }
+    // Générer un code badge unique et vérifier unicité
+    let badgeCode;
+    let isUnique = false;
+    while (!isUnique) {
+      badgeCode = generateBadgeCode();
+      // Vérifier unicité côté client (optionnel, la base doit aussi garantir l'unicité)
+      if (!inscriptions.some(i => i.identifiant_badge === badgeCode)) isUnique = true;
+    }
     try {
       const { error } = await supabase.from('inscription').insert([
         {
@@ -148,10 +165,11 @@ const AdminPage = () => {
           participant_type,
           sponsoring_level: participant_type === 'exposant' ? sponsoring_level : null,
           fonction: fonction.trim() || (participant_type.charAt(0).toUpperCase() + participant_type.slice(1)),
-          organisation: participant_type === 'organisation' ? organisation.trim() : null,
+          organisation: participant_type === 'exposant' ? organisation.trim() : null,
           email: email.trim(),
           telephone: telephone.trim(),
           ville: ville.trim(),
+          identifiant_badge: badgeCode,
           valide: false,
           scanned: false,
           created_at: new Date().toISOString(),

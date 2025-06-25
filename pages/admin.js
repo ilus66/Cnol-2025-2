@@ -158,7 +158,8 @@ const AdminPage = () => {
       if (!inscriptions.some(i => i.identifiant_badge === badgeCode)) isUnique = true;
     }
     try {
-      const { error } = await supabase.from('inscription').insert([
+      // 1. Insertion dans inscription
+      const { data: inserted, error } = await supabase.from('inscription').insert([
         {
           nom: nom.trim(),
           prenom: prenom.trim(),
@@ -174,10 +175,24 @@ const AdminPage = () => {
           scanned: false,
           created_at: new Date().toISOString(),
         },
-      ])
+      ]).select().single();
       if (error) {
         toast.error(`Erreur ajout : ${error.message}`)
       } else {
+        // 2. Si exposant, créer l'entrée dans exposants et lier
+        if (participant_type === 'exposant') {
+          const { data: exp, error: expError } = await supabase.from('exposants').insert([
+            {
+              nom: organisation.trim(),
+              email_responsable: email.trim(),
+              created_at: new Date().toISOString(),
+            }
+          ]).select().single();
+          if (!expError && exp && inserted) {
+            // 3. Mettre à jour l'inscription avec exposant_id
+            await supabase.from('inscription').update({ exposant_id: exp.id }).eq('id', inserted.id);
+          }
+        }
         toast.success('Inscription ajoutée !')
         setFormData({
           nom: '',

@@ -49,7 +49,7 @@ const AdminPage = () => {
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
-    participant_type: 'exposant',
+    participant_type: 'opticien',
     sponsoring_level: 'platinum',
     email: '',
     telephone: '',
@@ -164,7 +164,7 @@ const AdminPage = () => {
         setFormData({
           nom: '',
           prenom: '',
-          participant_type: 'exposant',
+          participant_type: 'opticien',
           sponsoring_level: 'platinum',
           email: '',
           telephone: '',
@@ -182,7 +182,11 @@ const AdminPage = () => {
 
   function handleChange(e) {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    if (name === 'participant_type') {
+      setFormData(prev => ({ ...prev, [name]: value, organisation: '' }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
   }
 
   function handlePrintBadge(inscrit) {

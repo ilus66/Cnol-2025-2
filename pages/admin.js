@@ -530,3 +530,4 @@ const AdminPage = () => {
 }
 
 export default AdminPage
+// Correction V2: commit technique pour forcer build Vercel

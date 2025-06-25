@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Box, Typography, Paper, Divider, Button } from '@mui/material';
+import { Box, Typography, Paper, Divider, Button, CircularProgress } from '@mui/material';
+import { supabase } from '../lib/supabaseClient';
 
 export async function getServerSideProps({ req }) {
   const sessionCookie = req.cookies['cnol-session'];
@@ -12,19 +13,33 @@ export async function getServerSideProps({ req }) {
     if (!sessionData || !sessionData.id || sessionData.participant_type !== 'exposant') {
       return { redirect: { destination: '/mon-espace', permanent: false } };
     }
-    // Ici, on pourra charger les infos du stand, staff, etc. plus tard
-    return { props: { userId: sessionData.id } };
+    // Charger l'utilisateur pour récupérer exposant_id
+    const { data: user, error } = await supabase
+      .from('inscription')
+      .select('id, exposant_id')
+      .eq('id', sessionData.id)
+      .single();
+    if (error || !user || !user.exposant_id) {
+      return { props: { exposant: null } };
+    }
+    // Charger les infos du stand
+    const { data: exposant, error: expError } = await supabase
+      .from('exposants')
+      .select('*')
+      .eq('id', user.exposant_id)
+      .single();
+    return { props: { exposant: exposant || null } };
   } catch {
     return { redirect: { destination: '/identification', permanent: false } };
   }
 }
 
-export default function MonStand() {
+export default function MonStand({ exposant }) {
   const router = useRouter();
 
-  useEffect(() => {
-    // Ici, on pourra charger les données du stand via API si besoin
-  }, []);
+  if (!exposant) {
+    return <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /><Typography sx={{ mt: 2 }}>Chargement des infos du stand...</Typography></Box>;
+  }
 
   return (
     <Box sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 1, sm: 3 } }}>
@@ -36,7 +51,9 @@ export default function MonStand() {
       {/* Bloc Infos Stand */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6">Infos du stand</Typography>
-        {/* TODO: Afficher nom société, logo, description, slogan, réseaux, message accueil */}
+        <Typography><b>Nom société :</b> {exposant.nom}</Typography>
+        <Typography><b>Email responsable :</b> {exposant.email_responsable}</Typography>
+        {/* TODO: afficher logo, description, slogan, etc. */}
       </Paper>
 
       {/* Bloc Marques & Produits */}

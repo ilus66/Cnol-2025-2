@@ -49,12 +49,13 @@ const AdminPage = () => {
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
-    participant_type: 'exposant',
+    participant_type: 'opticien',
     sponsoring_level: 'platinum',
     email: '',
     telephone: '',
     ville: '',
-    fonction: ''
+    fonction: '',
+    organisation: ''
   })
   const [adding, setAdding] = useState(false)
   const [settings, setSettings] = useState({ ouverture_reservation_atelier: false, ouverture_reservation_masterclass: false })
@@ -133,11 +134,28 @@ const AdminPage = () => {
   async function handleAdd(e) {
     e.preventDefault()
     setAdding(true)
-    const { nom, prenom, participant_type, sponsoring_level, email, telephone, ville, fonction } = formData
+    const { nom, prenom, participant_type, sponsoring_level, email, telephone, ville, fonction, organisation } = formData
     if (!nom.trim() || !prenom.trim()) {
       toast.error('Nom et prénom sont obligatoires')
       setAdding(false)
       return
+    }
+    // Génération d'un code badge unique (3 chiffres + 3 lettres)
+    function generateBadgeCode() {
+      const digits = Math.floor(100 + Math.random() * 900); // 3 chiffres
+      const letters = Array(3)
+        .fill(0)
+        .map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26)))
+        .join('');
+      return `${digits}${letters}`;
+    }
+    // Générer un code badge unique et vérifier unicité
+    let badgeCode;
+    let isUnique = false;
+    while (!isUnique) {
+      badgeCode = generateBadgeCode();
+      // Vérifier unicité côté client (optionnel, la base doit aussi garantir l'unicité)
+      if (!inscriptions.some(i => i.identifiant_badge === badgeCode)) isUnique = true;
     }
     try {
       const { error } = await supabase.from('inscription').insert([
@@ -147,10 +165,11 @@ const AdminPage = () => {
           participant_type,
           sponsoring_level: participant_type === 'exposant' ? sponsoring_level : null,
           fonction: fonction.trim() || (participant_type.charAt(0).toUpperCase() + participant_type.slice(1)),
-          organisation: participant_type === 'organisation' ? fonction.trim() : null,
+          organisation: participant_type === 'exposant' ? organisation.trim() : null,
           email: email.trim(),
           telephone: telephone.trim(),
           ville: ville.trim(),
+          identifiant_badge: badgeCode,
           valide: false,
           scanned: false,
           created_at: new Date().toISOString(),
@@ -163,12 +182,13 @@ const AdminPage = () => {
         setFormData({
           nom: '',
           prenom: '',
-          participant_type: 'exposant',
+          participant_type: 'opticien',
           sponsoring_level: 'platinum',
           email: '',
           telephone: '',
           ville: '',
-          fonction: ''
+          fonction: '',
+          organisation: ''
         })
         fetchInscriptions()
       }
@@ -180,7 +200,11 @@ const AdminPage = () => {
 
   function handleChange(e) {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    if (name === 'participant_type') {
+      setFormData(prev => ({ ...prev, [name]: value, organisation: '' }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
   }
 
   function handlePrintBadge(inscrit) {
@@ -283,14 +307,29 @@ const AdminPage = () => {
           <TextField label="Fonction" name="fonction" value={formData.fonction} onChange={handleChange} fullWidth />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" >
-          <FormControl fullWidth>
+          <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Type</InputLabel>
-            <Select name="participant_type" value={formData.participant_type} label="Type" onChange={handleChange}>
-              {participantTypes.map(type => (
-                <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+            <Select
+              name="participant_type"
+              value={formData.participant_type}
+              label="Type"
+              onChange={handleChange}
+            >
+              {participantTypes.map(opt => (
+                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
               ))}
             </Select>
           </FormControl>
+          {formData.participant_type && formData.participant_type.toLowerCase() === 'exposant' && (
+            <TextField
+              label="Nom de la société"
+              name="organisation"
+              value={formData.organisation}
+              onChange={handleChange}
+              required
+              sx={{ mb: 2 }}
+            />
+          )}
           {formData.participant_type === 'exposant' && (
             <FormControl sx={{ minWidth: 180, width: { xs: '100%', sm: 'auto' } }}>
               <InputLabel>Sponsoring</InputLabel>

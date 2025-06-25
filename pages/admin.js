@@ -45,6 +45,7 @@ const AdminPage = () => {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [sortOrder, setSortOrder] = useState('recent')
 
   const [formData, setFormData] = useState({
     nom: '',
@@ -383,6 +384,22 @@ const AdminPage = () => {
             ))}
           </Select>
         </FormControl>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant={sortOrder === 'recent' ? 'contained' : 'outlined'}
+            onClick={() => setSortOrder('recent')}
+            size="small"
+          >
+            Dernier inscrit
+          </Button>
+          <Button
+            variant={sortOrder === 'alpha' ? 'contained' : 'outlined'}
+            onClick={() => setSortOrder('alpha')}
+            size="small"
+          >
+            Nom A-Z
+          </Button>
+        </Box>
       </Stack>
       <Divider sx={{ my: 2 }} />
       {/* TABLEAU/INSCRITS : version mobile = cartes, desktop = tableau */}
@@ -393,6 +410,16 @@ const AdminPage = () => {
           ) : inscriptions.length === 0 ? (
             <Typography align="center">Aucun inscrit trouvé</Typography>
           ) : (
+            [...inscriptions]
+              .sort((a, b) => {
+                if (sortOrder === 'recent') {
+                  if (a.created_at && b.created_at) {
+                    return new Date(b.created_at) - new Date(a.created_at);
+                  }
+                  return b.id - a.id;
+                } else {
+                  const nomA = (a.nom || '').toLowerCase();
+                  const nomB = (b.nom || '').toLowerCase();
             inscriptions
               .slice()
               .sort((a, b) => a.nom.localeCompare(b.nom) || a.prenom.localeCompare(b.prenom))

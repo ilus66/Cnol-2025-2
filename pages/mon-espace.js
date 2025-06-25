@@ -336,6 +336,18 @@ export default function MonEspace({ user }) {
           </Button>
         </Box>
       )}
+      {user.participant_type && user.participant_type.toLowerCase() === 'exposant' && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="contained"
+            color="secondary"
+            href="/mon-stand"
+            sx={{ fontWeight: 'bold', letterSpacing: 1 }}
+          >
+            Administration Exposant
+          </Button>
+        </Box>
+      )}
       {/* En-tête avec infos utilisateur */}
       <Paper sx={{ p: 3, mb: 2, borderRadius: 4, boxShadow: 1, background: '#f7f7f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box>

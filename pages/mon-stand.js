@@ -36,7 +36,7 @@ export async function getServerSideProps({ req }) {
 
 export default function MonStand({ exposant }) {
   const router = useRouter();
-  const [staffForm, setStaffForm] = useState({ nom: '', prenom: '', email: '', telephone: '' });
+  const [staffForm, setStaffForm] = useState({ nom: '', prenom: '', email: '', telephone: '', fonction: '' });
   const [staffError, setStaffError] = useState('');
   const [staffSuccess, setStaffSuccess] = useState('');
   const [staffList, setStaffList] = useState([]);
@@ -66,7 +66,7 @@ export default function MonStand({ exposant }) {
     e.preventDefault();
     setStaffError('');
     setStaffSuccess('');
-    if (!staffForm.nom || !staffForm.prenom || !staffForm.email) {
+    if (!staffForm.nom || !staffForm.prenom || !staffForm.email || !staffForm.fonction) {
       setStaffError('Tous les champs sont obligatoires');
       return;
     }
@@ -83,12 +83,13 @@ export default function MonStand({ exposant }) {
       identifiant_badge: badgeCode,
       valide: true,
       created_at: new Date().toISOString(),
+      fonction: staffForm.fonction, // <-- OBLIGATOIRE
     });
     if (error) {
       setStaffError("Erreur lors de l'ajout : " + error.message);
     } else {
       setStaffSuccess('Staff ajouté et badge généré !');
-      setStaffForm({ nom: '', prenom: '', email: '', telephone: '' });
+      setStaffForm({ nom: '', prenom: '', email: '', telephone: '', fonction: '' });
       fetchStaff();
     }
   };
@@ -127,6 +128,7 @@ export default function MonStand({ exposant }) {
             <TextField label="Prénom" name="prenom" value={staffForm.prenom} onChange={handleStaffChange} required fullWidth />
             <TextField label="Email" name="email" value={staffForm.email} onChange={handleStaffChange} required fullWidth />
             <TextField label="Téléphone" name="telephone" value={staffForm.telephone} onChange={handleStaffChange} fullWidth />
+            <TextField label="Fonction" name="fonction" value={staffForm.fonction} onChange={handleStaffChange} required fullWidth />
             <TextField label="Type" value="staff" disabled fullWidth />
             <TextField label="Nom de la société" value={exposant.nom} disabled fullWidth />
           </Stack>
@@ -145,6 +147,7 @@ export default function MonStand({ exposant }) {
                 <Box>
                   <Typography><b>{staff.prenom} {staff.nom}</b> ({staff.email})</Typography>
                   <Typography variant="body2" color="text.secondary">Téléphone : {staff.telephone || '-'}</Typography>
+                  <Typography variant="body2" color="text.secondary">Fonction : {staff.fonction || '-'}</Typography>
                   <Typography variant="body2" color="text.secondary">Badge : {staff.identifiant_badge}</Typography>
                 </Box>
                 {/* TODO: Boutons Télécharger/Renvoyer badge */}
@@ -173,4 +176,4 @@ export default function MonStand({ exposant }) {
       </Paper>
     </Box>
   );
-} 
+}

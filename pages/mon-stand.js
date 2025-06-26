@@ -39,6 +39,11 @@ export default function MonStand({ exposant }) {
   const [staffSuccess, setStaffSuccess] = useState('');
   const [staffList, setStaffList] = useState([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
+  const [marqueForm, setMarqueForm] = useState({ nom: '', description: '' });
+  const [marqueError, setMarqueError] = useState('');
+  const [marqueSuccess, setMarqueSuccess] = useState('');
+  const [marquesList, setMarquesList] = useState([]);
+  const [loadingMarques, setLoadingMarques] = useState(false);
 
   // Préremplir le champ fonction avec STAFF + nom société
   useEffect(() => {
@@ -112,6 +117,52 @@ export default function MonStand({ exposant }) {
     }
   };
 
+  const fetchMarques = async () => {
+    setLoadingMarques(true);
+    const { data, error } = await supabase
+      .from('marques_produits')
+      .select('*')
+      .eq('exposant_id', exposant.id)
+      .order('created_at', { ascending: false });
+    setMarquesList(data || []);
+    setLoadingMarques(false);
+  };
+
+  useEffect(() => {
+    if (exposant) fetchMarques();
+  }, [exposant]);
+
+  const handleMarqueChange = (e) => {
+    setMarqueForm({ ...marqueForm, [e.target.name]: e.target.value });
+  };
+
+  const handleAddMarque = async (e) => {
+    e.preventDefault();
+    setMarqueError('');
+    setMarqueSuccess('');
+    if (!marqueForm.nom) {
+      setMarqueError('Le nom est obligatoire');
+      return;
+    }
+    const { error } = await supabase.from('marques_produits').insert({
+      exposant_id: exposant.id,
+      nom: marqueForm.nom,
+      description: marqueForm.description,
+    });
+    if (error) {
+      setMarqueError("Erreur lors de l'ajout : " + error.message);
+    } else {
+      setMarqueSuccess('Marque/produit ajouté !');
+      setMarqueForm({ nom: '', description: '' });
+      fetchMarques();
+    }
+  };
+
+  const handleDeleteMarque = async (id) => {
+    const { error } = await supabase.from('marques_produits').delete().eq('id', id);
+    if (!error) fetchMarques();
+  };
+
   if (!exposant) {
     return <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /><Typography sx={{ mt: 2 }}>Chargement des infos du stand...</Typography></Box>;
   }
@@ -133,7 +184,34 @@ export default function MonStand({ exposant }) {
       {/* Bloc Marques & Produits */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6">Marques & Produits</Typography>
-        {/* TODO: Liste, ajout, édition, suppression */}
+        <form onSubmit={handleAddMarque}>
+          <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
+            <TextField label="Nom de la marque/produit" name="nom" value={marqueForm.nom} onChange={handleMarqueChange} required fullWidth />
+            <TextField label="Description" name="description" value={marqueForm.description} onChange={handleMarqueChange} fullWidth />
+            <Button type="submit" variant="contained" color="primary">Ajouter</Button>
+          </Stack>
+          {marqueError && <Alert severity="error" sx={{ mb: 2 }}>{marqueError}</Alert>}
+          {marqueSuccess && <Alert severity="success" sx={{ mb: 2 }}>{marqueSuccess}</Alert>}
+        </form>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="subtitle1" sx={{ mb: 1 }}>Liste des marques/produits</Typography>
+        {loadingMarques ? <CircularProgress /> : marquesList.length === 0 ? (
+          <Typography color="text.secondary">Aucune marque/produit ajouté.</Typography>
+        ) : (
+          <Stack spacing={1}>
+            {marquesList.map(marque => (
+              <Paper key={marque.id} sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography><b>{marque.nom}</b></Typography>
+                  <Typography variant="body2" color="text.secondary">{marque.description}</Typography>
+                </Box>
+                <Box>
+                  <Button color="error" onClick={() => handleDeleteMarque(marque.id)}>Supprimer</Button>
+                </Box>
+              </Paper>
+            ))}
+          </Stack>
+        )}
       </Paper>
 
       {/* Bloc Staff */}

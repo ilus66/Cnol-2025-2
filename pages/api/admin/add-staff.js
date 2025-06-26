@@ -34,21 +34,30 @@ export default async function handler(req, res) {
   if (error) return res.status(500).json({ error: error.message });
 
   // 2. Générer le PDF du badge
-  const pdfBuffer = await generateBadgePdfBuffer({
-    name: `${prenom} ${nom}`,
-    function: fonction,
-    city: '', // Ajoute la ville si tu l’as
-    email,
-    userId: badgeCode,
-  });
+  let pdfBuffer;
+  try {
+    pdfBuffer = await generateBadgePdfBuffer({
+      name: `${prenom} ${nom}`,
+      function: fonction,
+      city: '', // Ajoute la ville si tu l’as
+      email,
+      userId: badgeCode,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Erreur lors de la génération du badge PDF : " + err.message });
+  }
 
   // 3. Envoi du badge par email
-  await sendBadgeEmail(
-    email,
-    `${prenom} ${nom}`,
-    pdfBuffer,
-    badgeCode
-  );
+  try {
+    await sendBadgeEmail(
+      email,
+      `${prenom} ${nom}`,
+      pdfBuffer,
+      badgeCode
+    );
+  } catch (err) {
+    return res.status(500).json({ error: "Erreur lors de l'envoi de l'email : " + err.message });
+  }
 
   return res.status(200).json({ success: true, badgeCode });
 }

@@ -13,7 +13,6 @@ export async function getServerSideProps({ req }) {
     if (!sessionData || !sessionData.id || sessionData.participant_type !== 'exposant') {
       return { redirect: { destination: '/mon-espace', permanent: false } };
     }
-    // Charger l'utilisateur pour récupérer exposant_id
     const { data: user, error } = await supabase
       .from('inscription')
       .select('id, exposant_id')
@@ -22,7 +21,6 @@ export async function getServerSideProps({ req }) {
     if (error || !user || !user.exposant_id) {
       return { props: { exposant: null } };
     }
-    // Charger les infos du stand
     const { data: exposant, error: expError } = await supabase
       .from('exposants')
       .select('*')
@@ -42,10 +40,15 @@ export default function MonStand({ exposant }) {
   const [staffList, setStaffList] = useState([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
 
-  // Charger la liste des staff à l'ouverture
+  // Préremplir le champ fonction avec STAFF + nom société
+  useEffect(() => {
+    if (exposant) {
+      setStaffForm(f => ({ ...f, fonction: `STAFF ${exposant.nom}` }));
+    }
+  }, [exposant]);
+
   useEffect(() => {
     if (exposant) fetchStaff();
-    // eslint-disable-next-line
   }, [exposant]);
 
   const fetchStaff = async () => {
@@ -85,8 +88,27 @@ export default function MonStand({ exposant }) {
       setStaffError("Erreur lors de l'ajout : " + data.error);
     } else {
       setStaffSuccess('Staff ajouté, badge généré et envoyé par email !');
-      setStaffForm({ nom: '', prenom: '', email: '', telephone: '', fonction: '' });
+      setStaffForm({ nom: '', prenom: '', email: '', telephone: '', fonction: `STAFF ${exposant.nom}` });
       fetchStaff();
+    }
+  };
+
+  // Télécharger le badge PDF d'un staff
+  const handleDownloadBadge = async (staff) => {
+    try {
+      const res = await fetch(`/api/generatedbadge?id=${staff.id}`);
+      if (!res.ok) throw new Error('Erreur lors du téléchargement du badge');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `badge-${staff.nom}-${staff.prenom}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(e.message);
     }
   };
 
@@ -145,6 +167,13 @@ export default function MonStand({ exposant }) {
                   <Typography variant="body2" color="text.secondary">Fonction : {staff.fonction || '-'}</Typography>
                   <Typography variant="body2" color="text.secondary">Badge : {staff.identifiant_badge}</Typography>
                 </Box>
+                <Button
+                  variant="outlined"
+                  onClick={() => handleDownloadBadge(staff)}
+                  sx={{ ml: 2 }}
+                >
+                  Télécharger badge
+                </Button>
               </Paper>
             ))}
           </Stack>

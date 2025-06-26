@@ -61,7 +61,41 @@ export default function MonStand({ exposant }) {
         <Typography variant="h6">Marques & Produits</Typography>
         {/* TODO: Liste, ajout, édition, suppression */}
       </Paper>
-
+<Paper sx={{ p: 3, mb: 3 }}>
+  <Typography variant="h6">Staff</Typography>
+  <form onSubmit={handleAddStaff}>
+    <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
+      <TextField label="Nom" name="nom" value={staffForm.nom} onChange={handleStaffChange} required fullWidth />
+      <TextField label="Prénom" name="prenom" value={staffForm.prenom} onChange={handleStaffChange} required fullWidth />
+      <TextField label="Email" name="email" value={staffForm.email} onChange={handleStaffChange} required fullWidth />
+      <TextField label="Téléphone" name="telephone" value={staffForm.telephone} onChange={handleStaffChange} fullWidth />
+      <TextField label="Fonction" name="fonction" value={staffForm.fonction} onChange={handleStaffChange} required fullWidth />
+      <TextField label="Type" value="staff" disabled fullWidth />
+      <TextField label="Nom de la société" value={exposant.nom} disabled fullWidth />
+    </Stack>
+    {staffError && <Alert severity="error" sx={{ mb: 2 }}>{staffError}</Alert>}
+    {staffSuccess && <Alert severity="success" sx={{ mb: 2 }}>{staffSuccess}</Alert>}
+    <Button type="submit" variant="contained" color="primary">Ajouter le staff</Button>
+  </form>
+  <Divider sx={{ my: 2 }} />
+  <Typography variant="subtitle1" sx={{ mb: 1 }}>Liste du staff</Typography>
+  {loadingStaff ? <CircularProgress /> : staffList.length === 0 ? (
+    <Typography color="text.secondary">Aucun staff ajouté pour ce stand.</Typography>
+  ) : (
+    <Stack spacing={1}>
+      {staffList.map(staff => (
+        <Paper key={staff.id} sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box>
+            <Typography><b>{staff.prenom} {staff.nom}</b> ({staff.email})</Typography>
+            <Typography variant="body2" color="text.secondary">Téléphone : {staff.telephone || '-'}</Typography>
+            <Typography variant="body2" color="text.secondary">Fonction : {staff.fonction || '-'}</Typography>
+            <Typography variant="body2" color="text.secondary">Badge : {staff.identifiant_badge}</Typography>
+          </Box>
+        </Paper>
+      ))}
+    </Stack>
+  )}
+</Paper>
       {/* Bloc Staff */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6">Staff</Typography>

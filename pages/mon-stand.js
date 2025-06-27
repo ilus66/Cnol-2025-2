@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Box, Typography, Paper, Divider, Button, CircularProgress, TextField, Stack, Alert } from '@mui/material';
 import { supabase } from '../lib/supabaseClient';
+import QRCode from 'qrcode.react';
 
 export async function getServerSideProps({ req }) {
   const sessionCookie = req.cookies['cnol-session'];
@@ -34,44 +35,41 @@ export async function getServerSideProps({ req }) {
 
 export default function MonStand({ exposant }) {
   const router = useRouter();
-  
-  // Hooks pour Staff
   const [staffForm, setStaffForm] = useState({ nom: '', prenom: '', email: '', telephone: '', fonction: '' });
   const [staffError, setStaffError] = useState('');
   const [staffSuccess, setStaffSuccess] = useState('');
   const [staffList, setStaffList] = useState([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
-  
-  // Hooks pour Marques & Produits
   const [marqueForm, setMarqueForm] = useState({ nom: '', description: '' });
   const [marqueError, setMarqueError] = useState('');
   const [marqueSuccess, setMarqueSuccess] = useState('');
   const [marquesList, setMarquesList] = useState([]);
   const [loadingMarques, setLoadingMarques] = useState(false);
-  
-  // Hooks pour Notifications
   const [notificationForm, setNotificationForm] = useState({ titre: '', message: '' });
   const [notificationError, setNotificationError] = useState('');
   const [notificationSuccess, setNotificationSuccess] = useState('');
   const [notificationsList, setNotificationsList] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [quotaInfo, setQuotaInfo] = useState({ used: 0, limit: 1, type: 'silver' });
-  
-  // Hooks pour Scan
   const [scannedContacts, setScannedContacts] = useState([]);
   const [loadingScan, setLoadingScan] = useState(false);
   const [scanStats, setScanStats] = useState({ total: 0, today: 0 });
-  
-  // Hooks pour Personnalisation
   const [personalizationForm, setPersonalizationForm] = useState({
-    description: '', slogan: '', message_accueil: '', logo_url: '',
-    site_web: '', linkedin: '', twitter: '', facebook: '', instagram: ''
+    description: '',
+    slogan: '',
+    message_accueil: '',
+    logo_url: '',
+    site_web: '',
+    linkedin: '',
+    twitter: '',
+    facebook: '',
+    instagram: ''
   });
   const [personalizationError, setPersonalizationError] = useState('');
   const [personalizationSuccess, setPersonalizationSuccess] = useState('');
   const [loadingPersonalization, setLoadingPersonalization] = useState(false);
 
-  // Initialisation
+  // Préremplir le champ fonction avec STAFF + nom société
   useEffect(() => {
     if (exposant) {
       setStaffForm(f => ({ ...f, fonction: `STAFF ${exposant.nom}` }));
@@ -79,16 +77,9 @@ export default function MonStand({ exposant }) {
   }, [exposant]);
 
   useEffect(() => {
-    if (exposant) {
-      fetchStaff();
-      fetchMarques();
-      fetchNotifications();
-      fetchScannedContacts();
-      fetchPersonalization();
-    }
+    if (exposant) fetchStaff();
   }, [exposant]);
 
-  // ===== FONCTIONS STAFF =====
   const fetchStaff = async () => {
     setLoadingStaff(true);
     const { data, error } = await supabase
@@ -131,6 +122,7 @@ export default function MonStand({ exposant }) {
     }
   };
 
+  // Télécharger le badge PDF d'un staff
   const handleDownloadBadge = async (staff) => {
     try {
       const res = await fetch(`/api/generatedbadge?id=${staff.id}`);
@@ -149,7 +141,6 @@ export default function MonStand({ exposant }) {
     }
   };
 
-  // ===== FONCTIONS MARQUES & PRODUITS =====
   const fetchMarques = async () => {
     setLoadingMarques(true);
     const { data, error } = await supabase
@@ -160,6 +151,10 @@ export default function MonStand({ exposant }) {
     setMarquesList(data || []);
     setLoadingMarques(false);
   };
+
+  useEffect(() => {
+    if (exposant) fetchMarques();
+  }, [exposant]);
 
   const handleMarqueChange = (e) => {
     setMarqueForm({ ...marqueForm, [e.target.name]: e.target.value });
@@ -192,7 +187,6 @@ export default function MonStand({ exposant }) {
     if (!error) fetchMarques();
   };
 
-  // ===== FONCTIONS NOTIFICATIONS =====
   const fetchNotifications = async () => {
     setLoadingNotifications(true);
     const { data, error } = await supabase
@@ -229,6 +223,10 @@ export default function MonStand({ exposant }) {
     }
   };
 
+  useEffect(() => {
+    if (exposant) fetchNotifications();
+  }, [exposant]);
+
   const handleNotificationChange = (e) => {
     setNotificationForm({ ...notificationForm, [e.target.name]: e.target.value });
   };
@@ -254,10 +252,10 @@ export default function MonStand({ exposant }) {
       });
       const data = await res.json();
       if (res.status === 429) {
-        setNotificationError(data.message);
+        setNotificationError(data.message || data.error || 'Erreur de quota');
         fetchNotifications(); // Rafraîchir le quota
-      } else if (data.error) {
-        setNotificationError("Erreur lors de l'envoi : " + data.error);
+      } else if (!res.ok) {
+        setNotificationError(data.message || data.error || 'Erreur serveur');
       } else {
         setNotificationSuccess('Notification envoyée à tous les abonnés !');
         setNotificationForm({ titre: '', message: '' });
@@ -268,7 +266,6 @@ export default function MonStand({ exposant }) {
     }
   };
 
-  // ===== FONCTIONS SCAN =====
   const fetchScannedContacts = async () => {
     setLoadingScan(true);
     const { data, error } = await supabase
@@ -291,11 +288,15 @@ export default function MonStand({ exposant }) {
     setLoadingScan(false);
   };
 
+  useEffect(() => {
+    if (exposant) fetchScannedContacts();
+  }, [exposant]);
+
   const generateQRCode = () => {
+    // Générer un QR code avec l'ID du stand pour le scan
     return `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/scan-stand?stand=${exposant.id}`;
   };
 
-  // ===== FONCTIONS PERSONNALISATION =====
   const fetchPersonalization = async () => {
     setLoadingPersonalization(true);
     const { data, error } = await supabase
@@ -319,6 +320,10 @@ export default function MonStand({ exposant }) {
     }
     setLoadingPersonalization(false);
   };
+
+  useEffect(() => {
+    if (exposant) fetchPersonalization();
+  }, [exposant]);
 
   const handlePersonalizationChange = (e) => {
     setPersonalizationForm({ ...personalizationForm, [e.target.name]: e.target.value });
@@ -345,7 +350,6 @@ export default function MonStand({ exposant }) {
     }
   };
 
-  // ===== RENDU =====
   if (!exposant) {
     return <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /><Typography sx={{ mt: 2 }}>Chargement des infos du stand...</Typography></Box>;
   }
@@ -397,7 +401,7 @@ export default function MonStand({ exposant }) {
         )}
       </Paper>
 
-      {/* Bloc Notifications Publiques */}
+      {/* Bloc Notifications Équipe */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6">Notifications Publiques</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -496,7 +500,7 @@ export default function MonStand({ exposant }) {
         )}
       </Paper>
 
-      {/* Bloc Scan de contacts */}
+      {/* Bloc Scan */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6">Scan de contacts</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -527,7 +531,8 @@ export default function MonStand({ exposant }) {
             borderRadius: 2,
             bgcolor: 'grey.50'
           }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            <QRCode value={generateQRCode()} size={160} fgColor="#1976d2" bgColor="#fff" includeMargin={true} />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {generateQRCode()}
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -568,11 +573,11 @@ export default function MonStand({ exposant }) {
         )}
       </Paper>
 
-      {/* Bloc Personnalisation du stand */}
+      {/* Bloc Personnalisation */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6">Personnalisation du stand</Typography>
         <form onSubmit={handleSavePersonalization}>
-          <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 2 }}>
+          <Stack spacing={2} direction="column" sx={{ mb: 2 }}>
             <TextField label="Description" name="description" value={personalizationForm.description} onChange={handlePersonalizationChange} fullWidth />
             <TextField label="Slogan" name="slogan" value={personalizationForm.slogan} onChange={handlePersonalizationChange} fullWidth />
             <TextField label="Message d'accueil" name="message_accueil" value={personalizationForm.message_accueil} onChange={handlePersonalizationChange} fullWidth />
